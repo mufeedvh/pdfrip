@@ -34,7 +34,7 @@
 ## Installation
 
 ```
-$ curl -L https://github.com/mufeedvh/pdfrip/releases/download/v1.0.0/pdfrip_linux -o pdfrip
+$ curl -L https://github.com/mufeedvh/pdfrip/releases/download/v1.0.0/pdfrip_amd64 -o pdfrip
 ```
 
 (`Linux AMD x86-64`)
