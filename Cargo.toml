@@ -6,10 +6,11 @@ edition = "2021"
 [dependencies]
 pdf = "0.7.2"
 rayon = "1.5.1"
-snmalloc-rs = "0.2.28"
 indicatif = "0.16.2"
 clap = "3.0.14"
 colored = "2.0.0"
+[target.'cfg(not(target_os = "windows"))'.dependencies]
+snmalloc-rs = "0.2.28"
 
 [profile.release]
 lto = 'thin'
