@@ -1,3 +1,7 @@
+#[cfg(not(windows))]
+#[global_allocator]
+static ALLOC: snmalloc_rs::SnMalloc = snmalloc_rs::SnMalloc;
+
 mod cli;
 mod core;
 
