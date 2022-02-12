@@ -1,6 +1,6 @@
 <div align="center">
   <h1><code>PDFRip</code></h1>
-  <p><strong>High-performance PDF password cracking utility equipped with commonly encountered password format builders and dictionary attacks.</strong></p>
+  <p><strong>Fast PDF password cracking utility equipped with commonly encountered password format builders and dictionary attacks.</strong></p>
 </div>
 
 ## 📖 Table of Contents
