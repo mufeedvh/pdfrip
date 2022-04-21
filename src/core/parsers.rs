@@ -10,13 +10,6 @@ use crate::cli::interface;
 /// 
 /// Parses "69-420" queries and populates a vector with the whole range.
 pub fn parse_range(range_input: String) -> Vec<String> {
-    fn format_error() {
-        push_message(
-            Type::Error,
-            "Invalid range format. (Use format: `-n 1337-13337`)"
-        );
-    }
-
     let mut next_range = false;
     let mut start_range = String::new();
     let mut end_range = String::new();
@@ -36,40 +29,28 @@ pub fn parse_range(range_input: String) -> Vec<String> {
                 }
             },
             _ => {
-                format_error();
+                push_message(
+                    Type::Error,
+                    "Invalid range format. (Use format: `-n 1337-13337`)"
+                );
                 process::exit(1)
             }
         }
     }
 
     if !next_range {
-        format_error();
+        push_message(
+            Type::Error,
+            "Invalid range format. (Use format: `-n 1337-13337`)"
+        );
         process::exit(1)
     }
 
-    let start_range = match start_range.parse::<usize>() {
-        Ok(num) => num,
-        Err(_) => {
-            format_error();
-            process::exit(1)
-        }
-    };
-
-    let end_range = match end_range.parse::<usize>() {
-        Ok(num) => num,
-        Err(_) => {
-            format_error();
-            process::exit(1)
-        }
-    };
+    let start_range = start_range.parse::<usize>().unwrap();
+    let end_range = end_range.parse::<usize>().unwrap();
 
     let range: Vec<usize> = (start_range..(end_range + 1)).collect();
-
-    let mut wordlist: Vec<String> = Vec::with_capacity(range.len());
-
-    for num in range {
-        wordlist.push(num.to_string())
-    }
+    let wordlist: Vec<String> = range.iter().map(|r| r.to_string()).collect();
 
     wordlist
 }
@@ -111,18 +92,6 @@ pub fn construct_dates(year: String) -> Vec<String> {
 /// Parses queries like "ALICE{1000-5000}BOB" and populates a vector with
 /// the whole range.
 pub fn custom_query_parser(query: String) -> Vec<String> {
-    fn format_error() {
-        push_message(
-            Type::Error,
-            "Invalid custom query format. (Use format: `-q STRING{1337-13337}`)"
-        );
-    }
-
-    if query.matches('{').count() > 1 {
-        format_error();
-        process::exit(1)
-    }
-
     let mut start_parse = false;
     let mut end_parse = false;
     let mut next_range = false;
@@ -180,21 +149,8 @@ pub fn custom_query_parser(query: String) -> Vec<String> {
 
     let end_num_digits = end_range.len();
 
-    let start_range = match start_range.parse::<usize>() {
-        Ok(num) => num,
-        Err(_) => {
-            format_error();
-            process::exit(1)
-        }
-    };
-
-    let end_range = match end_range.parse::<usize>() {
-        Ok(num) => num,
-        Err(_) => {
-            format_error();
-            process::exit(1)
-        }
-    };
+    let start_range = start_range.parse::<usize>().unwrap();
+    let end_range = end_range.parse::<usize>().unwrap();
 
     let range: Vec<usize> = (start_range..(end_range + 1)).collect();
 

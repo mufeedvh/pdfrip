@@ -6,6 +6,7 @@ use indicatif::ProgressBar;
 use std::path::Path;
 use std::process;
 use std::fs;
+use std::io;
 
 use crate::cli::messages::{
     Type, push_message
@@ -49,7 +50,7 @@ impl PDFRip {
         process::exit(0)
     }
 
-    pub fn crack(&self) {
+    pub fn crack(&self) -> io::Result<()> {
         Self::sanity_check(&self);
 
         push_message(
@@ -57,16 +58,7 @@ impl PDFRip {
             &format!("PDF File: {}\n", &self.filepath.bold().red())
         );
 
-        let pdf_file = match fs::read(&self.filepath) {
-            Ok(bytes) => bytes,
-            Err(_) => {
-                push_message(
-                    Type::Info,
-                    "Failed to read the PDF file."
-                );
-                process::exit(1)
-            }
-        };
+        let pdf_file = fs::read(&self.filepath)?;
 
         if let Some(wordlist_path) = &self.wordlist_path {
             push_message(
@@ -74,20 +66,11 @@ impl PDFRip {
                 &format!("Wordlist File: {}\n\n", wordlist_path.bold().red())
             );
 
-            let wordlist_bytes = match fs::read(wordlist_path) {
-                Ok(bytes) => bytes,
-                Err(error) => {
-                    push_message(
-                        Type::Error,
-                        &format!("Failed to read the wordlist file due to: {}", error)
-                    );
-                    process::exit(1)
-                }
-            };
-
+            let wordlist_bytes = fs::read(wordlist_path)?;
             let wordlist = String::from_utf8_lossy(&wordlist_bytes);
     
             let progress_bar = ProgressBar::new(wordlist.matches('\n').count() as u64);
+            progress_bar.set_draw_delta(1000);
 
             wordlist.par_lines().for_each(|password| {
                 if Self::decrypt_pdf(pdf_file.clone(), password.as_bytes()) {
@@ -108,6 +91,7 @@ impl PDFRip {
             );
 
             let progress_bar = ProgressBar::new(range.len() as u64);
+            progress_bar.set_draw_delta(1000);
 
             range.par_iter().for_each(|number| {
                 if Self::decrypt_pdf(pdf_file.clone(), number.as_bytes()) {
@@ -124,6 +108,7 @@ impl PDFRip {
     
             let mut report_progress = false;
             let progress_bar = ProgressBar::new(dates.len() as u64);
+            progress_bar.set_draw_delta(1000);
             if dates.len() > 10000 { report_progress = true }
 
             let cpu_time = std::time::Instant::now();
@@ -147,6 +132,7 @@ impl PDFRip {
 
             let mut report_progress = false;
             let progress_bar = ProgressBar::new(queries.len() as u64);
+            progress_bar.set_draw_delta(1000);
             if queries.len() > 10000 { report_progress = true }            
     
             push_message(
@@ -171,6 +157,8 @@ impl PDFRip {
         }
 
         eprintln!("\nNone of those were the password :(, try building a custom query with `-q` if you know the password format!");
+
+        Ok(())
     }
 
     pub fn sanity_check(&self) {
@@ -194,13 +182,12 @@ impl PDFRip {
             self.custom_query.is_some()
         ];
 
-        let mut c = 0;
-        for mode in mode_set { if mode { c += 1 } }
-        if c > 1 {
+        if mode_set.iter().filter(|&n| *n == true).count() > 1 {
             push_message(
                 Type::Error,
                 "You can only use one mode at a time."
             );
+
             process::exit(1)
         }
 

@@ -1,4 +1,4 @@
-use clap::{App, Arg, ArgMatches};
+use clap::{Command, Arg, ArgMatches};
 use colored::*;
 
 pub fn banner() {
@@ -6,7 +6,7 @@ pub fn banner() {
 }
 
 pub fn args() -> ArgMatches {
-    App::new("pdfrip")
+    Command::new("pdfrip")
         .version("1.0.0")
         .author("Mufeed VH <contact@mufeedvh.com>")
         .about("A fast PDF password cracking utility written in Rust.")
