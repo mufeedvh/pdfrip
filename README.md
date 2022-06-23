@@ -26,7 +26,7 @@
 
 ## Features
 
-- **Fast:** Performs about 50-100k+ passwords per second utilising full CPU cores.
+- **Fast:** Performs about 50k-100k+ passwords per second utilising full CPU cores.
 - **Custom Query Builder:** You can write your own queries like `STRING{69-420}` with the `-q` option which would generate a wordlist with the full number range.
 - **Date Bruteforce:** You can pass in an year as the input with the `-d` option which would bruteforce all 365 days of the year in `DDMMYYYY` format which is a pretty commonly used password format for PDFs.
 - **Number Bruteforce:** Just give a number range like `5000-100000` with the `-n` option and it would bruteforce with the whole range.
