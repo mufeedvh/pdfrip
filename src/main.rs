@@ -8,6 +8,8 @@ extern crate log;
 mod cli;
 mod core;
 
+use std::path::Path;
+
 use env_logger::Env;
 
 use crate::cli::interface;
@@ -19,15 +21,12 @@ pub fn main() {
     interface::banner();
     let cli = interface::args();
 
-    let pdfrip = engine::PDFRip {
-        filepath: cli.filename,
-        wordlist_path: cli.wordlist,
-        num_bruteforce: cli.num_bruteforce,
-        preceding_zeros_enabled: cli.add_preceding_zeros,
-    };
+    let padding: usize = cli.upper_bound.checked_ilog10().unwrap() as usize + 1;
 
-    match pdfrip.crack() {
-        Ok(_) => {},
-        Err(err) => error!("An error occured {}", err),
-    }
+    let producer = core::production::number_ranges::RangeProducer::new(
+        padding,
+        cli.lower_bound,
+        cli.upper_bound,
+    );
+    engine::v1::crack_file(&Path::new(&cli.filename), 100, Box::from(producer)).unwrap();
 }
