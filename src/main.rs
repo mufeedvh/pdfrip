@@ -2,13 +2,19 @@
 #[global_allocator]
 static ALLOC: snmalloc_rs::SnMalloc = snmalloc_rs::SnMalloc;
 
+#[macro_use]
+extern crate log;
+
 mod cli;
 mod core;
+
+use env_logger::Env;
 
 use crate::cli::interface;
 use crate::core::engine;
 
-pub fn main() -> std::io::Result<()> {
+pub fn main() {
+    env_logger::Builder::from_env(Env::default().default_filter_or("INFO")).init();
     // print a banner to look cool!
     interface::banner();
     let cli = interface::args();
@@ -17,10 +23,11 @@ pub fn main() -> std::io::Result<()> {
         filepath: cli.filename,
         wordlist_path: cli.wordlist,
         num_bruteforce: cli.num_bruteforce,
-        date_bruteforce: cli.date_bruteforce,
-        custom_query: cli.custom_query,
         preceding_zeros_enabled: cli.add_preceding_zeros,
     };
 
-    pdfrip.crack()
+    match pdfrip.crack() {
+        Ok(_) => {},
+        Err(err) => error!("An error occured {}", err),
+    }
 }
