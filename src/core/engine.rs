@@ -1,16 +1,14 @@
-use pdf::file::File;
-use rayon::prelude::*;
 use colored::*;
 use indicatif::ProgressBar;
+use pdf::file::File;
+use rayon::prelude::*;
 
-use std::path::Path;
-use std::process;
 use std::fs;
 use std::io;
+use std::path::Path;
+use std::process;
 
-use crate::cli::messages::{
-    Type, push_message
-};
+use crate::cli::messages::{push_message, Type};
 
 use crate::core::parsers;
 
@@ -19,7 +17,8 @@ pub struct PDFRip {
     pub wordlist_path: Option<String>,
     pub num_bruteforce: Option<String>,
     pub date_bruteforce: Option<String>,
-    pub custom_query: Option<String>
+    pub custom_query: Option<String>,
+    pub preceding_zeros_enabled: bool,
 }
 
 impl PDFRip {
@@ -27,23 +26,17 @@ impl PDFRip {
     pub fn decrypt_pdf(pdf_bytes: Vec<u8>, password: &[u8]) -> bool {
         match File::from_data_password(pdf_bytes, password) {
             Ok(_) => true,
-            Err(_) => false
+            Err(_) => false,
         }
     }
 
     pub fn win(&self, password: &str, time_elapsed: Option<u128>) {
-        push_message(
-            Type::Success,
-            &format!("{} :: ", &self.filepath.red())
-        );
+        push_message(Type::Success, &format!("{} :: ", &self.filepath.red()));
 
         println!("{}", password.bold().yellow());
 
         if let Some(time_elapsed) = time_elapsed {
-            push_message(
-                Type::Info,
-                "Cracked in "
-            );
+            push_message(Type::Info, "Cracked in ");
             eprintln!("{} milliseconds", time_elapsed);
         }
 
@@ -55,7 +48,7 @@ impl PDFRip {
 
         push_message(
             Type::Info,
-            &format!("PDF File: {}\n", &self.filepath.bold().red())
+            &format!("PDF File: {}\n", &self.filepath.bold().red()),
         );
 
         let pdf_file = fs::read(&self.filepath)?;
@@ -63,12 +56,12 @@ impl PDFRip {
         if let Some(wordlist_path) = &self.wordlist_path {
             push_message(
                 Type::Info,
-                &format!("Wordlist File: {}\n\n", wordlist_path.bold().red())
+                &format!("Wordlist File: {}\n\n", wordlist_path.bold().red()),
             );
 
             let wordlist_bytes = fs::read(wordlist_path)?;
             let wordlist = String::from_utf8_lossy(&wordlist_bytes);
-    
+
             let progress_bar = ProgressBar::new(wordlist.matches('\n').count() as u64);
             progress_bar.set_draw_delta(1000);
 
@@ -78,7 +71,7 @@ impl PDFRip {
                 }
                 progress_bar.inc(1);
             });
-    
+
             progress_bar.finish();
         }
 
@@ -87,7 +80,10 @@ impl PDFRip {
 
             push_message(
                 Type::Info,
-                &format!("Number Bruteforce Mode: {} payloads\n\n", range.len().to_string().bold().red())
+                &format!(
+                    "Number Bruteforce Mode: {} payloads\n\n",
+                    range.len().to_string().bold().red()
+                ),
             );
 
             let progress_bar = ProgressBar::new(range.len() as u64);
@@ -99,17 +95,19 @@ impl PDFRip {
                 }
                 progress_bar.inc(1);
             });
-    
+
             progress_bar.finish();
         }
 
         if let Some(date_bruteforce) = &self.date_bruteforce {
             let dates = parsers::construct_dates(date_bruteforce.to_owned());
-    
+
             let mut report_progress = false;
             let progress_bar = ProgressBar::new(dates.len() as u64);
             progress_bar.set_draw_delta(1000);
-            if dates.len() > 10000 { report_progress = true }
+            if dates.len() > 10000 {
+                report_progress = true
+            }
 
             let cpu_time = std::time::Instant::now();
 
@@ -128,16 +126,22 @@ impl PDFRip {
         }
 
         if let Some(custom_query) = &self.custom_query {
-            let queries = parsers::custom_query_parser(custom_query.to_owned());
+            let queries =
+                parsers::custom_query_parser(custom_query.to_owned(), self.preceding_zeros_enabled);
 
             let mut report_progress = false;
             let progress_bar = ProgressBar::new(queries.len() as u64);
             progress_bar.set_draw_delta(1000);
-            if queries.len() > 10000 { report_progress = true }            
-    
+            if queries.len() > 10000 {
+                report_progress = true
+            }
+
             push_message(
                 Type::Info,
-                &format!("Custom Query Mode: {} payloads\n\n", queries.len().to_string().bold().red())
+                &format!(
+                    "Custom Query Mode: {} payloads\n\n",
+                    queries.len().to_string().bold().red()
+                ),
             );
 
             let cpu_time = std::time::Instant::now();
@@ -148,7 +152,7 @@ impl PDFRip {
                 }
                 if report_progress {
                     progress_bar.inc(1);
-                }                
+                }
             });
 
             if report_progress {
@@ -162,39 +166,11 @@ impl PDFRip {
     }
 
     pub fn sanity_check(&self) {
-        if self.wordlist_path.is_none() &&
-           self.num_bruteforce.is_none() &&
-           self.date_bruteforce.is_none() &&
-           self.custom_query.is_none()
-        {
-            push_message(
-                Type::Error,
-                "You have to use either `--wordlist` OR `--num-bruteforce` \
-                OR `--date-bruteforce` OR `--custom-query` mode."
-            );
-            process::exit(1)
-        }
-
-        let mode_set = vec![
-            self.wordlist_path.is_some(),
-            self.num_bruteforce.is_some(),
-            self.date_bruteforce.is_some(),
-            self.custom_query.is_some()
-        ];
-
-        if mode_set.iter().filter(|&n| *n == true).count() > 1 {
-            push_message(
-                Type::Error,
-                "You can only use one mode at a time."
-            );
-
-            process::exit(1)
-        }
 
         if !Path::new(&self.filepath).is_file() {
             push_message(
                 Type::Error,
-                &format!("The given PDF file `{}` does not exist", &self.filepath)
+                &format!("The given PDF file `{}` does not exist", &self.filepath),
             );
             process::exit(1)
         }
@@ -203,7 +179,10 @@ impl PDFRip {
             if !Path::new(&wordlist_path).is_file() {
                 push_message(
                     Type::Error,
-                    &format!("The given wordlist file `{}` does not exist", &wordlist_path)
+                    &format!(
+                        "The given wordlist file `{}` does not exist",
+                        &wordlist_path
+                    ),
                 );
                 process::exit(1)
             }
@@ -211,24 +190,18 @@ impl PDFRip {
 
         match File::<Vec<u8>>::open_password(&self.filepath, b"dummytesttoomuchentropy12345") {
             Ok(_) => {
-                push_message(
-                    Type::Error,
-                    "This PDF file is not encrypted."
-                );
-                process::exit(0)                
-            },
+                push_message(Type::Error, "This PDF file is not encrypted.");
+                process::exit(0)
+            }
             Err(error) => {
                 if error.to_string().contains("crypt_filters") {
                     push_message(
                         Type::Error,
-                        "This PDF encryption algorithm isn't supported yet. :("
+                        "This PDF encryption algorithm isn't supported yet. :(",
                     );
                     process::exit(0)
                 } else if error.to_string().contains("file header is missing") {
-                    push_message(
-                        Type::Error,
-                        "Invalid PDF file."
-                    );
+                    push_message(Type::Error, "Invalid PDF file.");
                     process::exit(1)
                 }
             }

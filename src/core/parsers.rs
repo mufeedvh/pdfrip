@@ -1,13 +1,9 @@
 use std::process;
 
-use crate::cli::messages::{
-    Type, push_message
-};
-
-use crate::cli::interface;
+use crate::cli::messages::{push_message, Type};
 
 /// Number range parser
-/// 
+///
 /// Parses "69-420" queries and populates a vector with the whole range.
 pub fn parse_range(range_input: String) -> Vec<String> {
     let mut next_range = false;
@@ -22,16 +18,16 @@ pub fn parse_range(range_input: String) -> Vec<String> {
                 } else {
                     end_range.push(c)
                 }
-            },
+            }
             '-' => {
                 if !next_range {
                     next_range = true;
                 }
-            },
+            }
             _ => {
                 push_message(
                     Type::Error,
-                    "Invalid range format. (Use format: `-n 1337-13337`)"
+                    "Invalid range format. (Use format: `-n 1337-13337`)",
                 );
                 process::exit(1)
             }
@@ -41,7 +37,7 @@ pub fn parse_range(range_input: String) -> Vec<String> {
     if !next_range {
         push_message(
             Type::Error,
-            "Invalid range format. (Use format: `-n 1337-13337`)"
+            "Invalid range format. (Use format: `-n 1337-13337`)",
         );
         process::exit(1)
     }
@@ -54,7 +50,6 @@ pub fn parse_range(range_input: String) -> Vec<String> {
 
     wordlist
 }
-
 
 /// Constructs a 365 day wordlist of the input year in DDMMYYYY format
 pub fn construct_dates(year: String) -> Vec<String> {
@@ -77,21 +72,18 @@ pub fn construct_dates(year: String) -> Vec<String> {
                 month.to_string()
             };
 
-            dates_wordlist.push(
-                format!("{}{}{}", date, month, year)
-            )
+            dates_wordlist.push(format!("{}{}{}", date, month, year))
         }
     }
 
     dates_wordlist
 }
 
-
 /// Custom query parser
-/// 
+///
 /// Parses queries like "ALICE{1000-5000}BOB" and populates a vector with
 /// the whole range.
-pub fn custom_query_parser(query: String) -> Vec<String> {
+pub fn custom_query_parser(query: String, preceding_zeros_enabled: bool) -> Vec<String> {
     let mut start_parse = false;
     let mut end_parse = false;
     let mut next_range = false;
@@ -114,7 +106,7 @@ pub fn custom_query_parser(query: String) -> Vec<String> {
                 if start_parse {
                     range_enclave.push(c)
                 }
-            },
+            }
             '-' => {
                 if !next_range && start_parse {
                     next_range = true;
@@ -127,15 +119,15 @@ pub fn custom_query_parser(query: String) -> Vec<String> {
                     }
                 }
                 range_enclave.push(c)
-            },
+            }
             '{' => {
                 start_parse = true;
                 range_enclave.push(c)
-            },
+            }
             '}' => {
                 end_parse = true;
                 range_enclave.push(c)
-            },
+            }
             _ => {
                 if !start_parse {
                     prefix.push(c)
@@ -156,8 +148,6 @@ pub fn custom_query_parser(query: String) -> Vec<String> {
 
     let mut wordlist: Vec<String> = Vec::with_capacity(range.len());
 
-    let preceding_zeros_enabled = interface::args().is_present("add_preceding_zeros");
-
     for num in range {
         let mut num = num.to_string();
 
@@ -166,11 +156,9 @@ pub fn custom_query_parser(query: String) -> Vec<String> {
                 num = format!("{}{}", "0".repeat(end_num_digits - num.len()), num);
             }
         }
-        
-        wordlist.push(
-            format!("{}{}{}", prefix, num, suffix)
-        )
+
+        wordlist.push(format!("{}{}{}", prefix, num, suffix))
     }
-    
+
     wordlist
 }

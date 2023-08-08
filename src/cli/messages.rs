@@ -16,7 +16,7 @@ pub fn push_message(log_type: Type, message: &str) {
         Type::_Skipped => format!("{}{}{}", "[".bold(), "SKIPPED".bold().yellow(), "]".bold()),
         Type::Error => format!("\n{}{}{}", "[".bold(), "ERROR".bold().red(), "]".bold()),
         Type::Info => format!("{}{}{}", "[".bold(), "INFO".bold().cyan(), "]".bold()),
-        Type::Success => format!("\n{}{}{}", "[".bold(), "SUCCESS".bold().green(), "]".bold())
+        Type::Success => format!("\n{}{}{}", "[".bold(), "SUCCESS".bold().green(), "]".bold()),
     };
 
     eprint!("{}", format!("{} {}", prefix, message))
