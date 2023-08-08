@@ -11,15 +11,19 @@ pub fn banner() {
 #[clap(group(ArgGroup::new("ranges").args(&["lower-bound", "upper-bound"]).requires("num-bruteforce").multiple(true)))]
 /// A fast PDF password cracking utility written in Rust.
 pub struct Arguments {
+    #[clap(short, long, default_value_t = 4)]
+    /// Number of worker threads
+    pub number_of_threads: usize,
+
     #[clap(short, long)]
     /// The filename of the PDF
     pub filename: String,
 
-    #[clap(short, long)]
+    #[clap(long)]
     /// Path to the pasword wordlist.
     pub wordlist: Option<String>,
 
-    #[clap(short, long)]
+    #[clap(long)]
     /// Bruteforce numbers for the password with the given range.
     pub num_bruteforce: bool,
 

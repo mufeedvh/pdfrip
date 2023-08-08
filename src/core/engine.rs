@@ -1,4 +1,3 @@
-
 const BUFFER_SIZE: usize = 200;
 
 use std::{fs, path::Path, sync::Arc, thread};
@@ -57,7 +56,7 @@ pub fn crack_file(
         worker_handles.push(handle);
     }
 
-    println!("{}", producer.size());
+    info!("Starting crack...");
     let mut success: Option<Arc<Vec<u8>>> = None;
     let progress_bar = ProgressBar::new(producer.size() as u64);
     progress_bar.set_draw_delta(1000);

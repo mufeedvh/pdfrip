@@ -16,13 +16,13 @@ pub mod production {
 
         use super::Producer;
 
-        struct LineProducer {
+        pub struct LineProducer {
             inner: Box<dyn BufRead>,
             size: usize,
         }
 
         impl LineProducer {
-            fn new(source: Box<dyn BufRead>, number_of_lines: usize) -> Self {
+            pub fn new(source: Box<dyn BufRead>, number_of_lines: usize) -> Self {
                 Self {
                     inner: source,
                     size: number_of_lines,
