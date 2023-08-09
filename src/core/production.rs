@@ -1,4 +1,3 @@
-
 use std::sync::Arc;
 
 pub trait Producer {
@@ -9,7 +8,11 @@ pub trait Producer {
 
 pub mod dictionary {
 
-    use std::{io::BufRead, sync::Arc};
+    use std::{
+        fs,
+        io::{BufRead, BufReader},
+        sync::Arc,
+    };
 
     use super::Producer;
 
@@ -19,10 +22,26 @@ pub mod dictionary {
     }
 
     impl LineProducer {
-        pub fn new(source: Box<dyn BufRead>, number_of_lines: usize) -> Self {
+        pub fn from(path: &str) -> Self {
+            // TODO: This will be slow on large files, so we might want to skip this 
+            // depending on the filesize.
+            let lines = fs::read(&path)
+                .unwrap()
+                .iter()
+                .filter(|x| {
+                    if let Some(y) = char::from_u32(**x as u32) {
+                        y == '\n'
+                    } else {
+                        false
+                    }
+                })
+                .count();
+            let file = fs::File::open(path).unwrap();
+            let reader = BufReader::new(file);
+
             Self {
-                inner: source,
-                size: number_of_lines,
+                inner: Box::from(reader),
+                size: lines,
             }
         }
     }

@@ -4,17 +4,21 @@ extern crate log;
 mod cli;
 mod core;
 
+use anyhow::{bail, Context};
+use pretty_env_logger::env_logger::Env;
+
+use crate::core::cracker::pdf::PDFCracker;
 use crate::core::production::Producer;
-use std::fs::{self, File};
-use std::io::BufReader;
-use std::path::Path;
+use crate::core::production::dictionary::LineProducer;
+use std::sync::Arc;
 
 use crate::cli::interface;
 use crate::core::{engine, production};
 
-pub fn main() {
+pub fn main() -> anyhow::Result<()> {
+    let env = Env::default().filter_or("LOG_LEVEL", "info");
     pretty_env_logger::formatted_timed_builder()
-        .parse_env("LOG_LEVEL")
+        .parse_env(env)
         .init();
     // print a banner to look cool!
     interface::banner();
@@ -28,28 +32,20 @@ pub fn main() {
             cli.lower_bound,
             cli.upper_bound,
         );
-
         Box::from(producer)
+
     } else if let Some(path) = cli.wordlist {
-        let lines = fs::read(&path)
-            .unwrap()
-            .iter()
-            .filter(|x| {
-                if let Some(y) = char::from_u32(**x as u32) {
-                    y == '\n'
-                } else {
-                    false
-                }
-            })
-            .count();
-        let file = File::open(path).unwrap();
-
-        let producer =
-            production::dictionary::LineProducer::new(Box::from(BufReader::new(file)), lines);
+        let producer = LineProducer::from(&path);
         Box::from(producer)
+
     } else {
-        return;
+        bail!("No supported arguments found, contact the developers since this means the argument parser is not working properly");
     };
 
-    engine::crack_file(&Path::new(&cli.filename), cli.number_of_threads, producer).unwrap();
+    let cracker =
+        PDFCracker::from_file(&cli.filename).context(format!("path: {}", cli.filename))?;
+
+    engine::crack_file(cli.number_of_threads, Arc::new(cracker), producer)?;
+    
+    Ok(())
 }

@@ -1,19 +1,13 @@
 const BUFFER_SIZE: usize = 200;
 
-use std::{fs, path::Path, sync::Arc, thread};
+use std::{sync::Arc, thread};
 
 use crossbeam::channel::{Receiver, Sender};
 use indicatif::ProgressBar;
-use pdf::file::File;
 
 use crate::core::production::Producer;
 
-pub fn decrypt_pdf(pdf_bytes: &[u8], password: &[u8]) -> bool {
-    match File::from_data_password(pdf_bytes, password) {
-        Ok(_) => true,
-        Err(_) => false,
-    }
-}
+use super::cracker::Cracker;
 
 enum Message {
     Password(Arc<Vec<u8>>),
@@ -21,13 +15,12 @@ enum Message {
 }
 
 pub fn crack_file(
-    target_path: &Path,
     no_workers: usize,
+    cracker: Arc<dyn Cracker>,
     mut producer: Box<dyn Producer>,
 ) -> anyhow::Result<()> {
     // Spin up workers
     let (s, r): (Sender<Message>, Receiver<Message>) = crossbeam::channel::bounded(BUFFER_SIZE);
-    let pdf_file = fs::read(target_path)?;
 
     let (success_sender, success_reader): (Sender<Arc<Vec<u8>>>, Receiver<Arc<Vec<u8>>>) =
         crossbeam::channel::unbounded();
@@ -35,15 +28,13 @@ pub fn crack_file(
     let mut worker_handles = vec![];
     for _ in 0..no_workers {
         let reader = r.clone();
-        // let each thread have their own copy of the file, this uses RAM but whatever
-        let filecontent = pdf_file.clone();
+        let target = cracker.clone();
         let success_target = success_sender.clone();
-
         let handle = thread::spawn(move || {
             while let Ok(message) = reader.recv() {
                 match message {
                     Message::Password(password) => {
-                        if decrypt_pdf(&filecontent, &password) {
+                        if target.attempt(&password) {
                             // inform main thread we found a good password then die
                             let _ = success_target.send(password);
                             return;
