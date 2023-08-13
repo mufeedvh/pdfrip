@@ -1,3 +1,4 @@
+/// We require cracker implementations to support being sent between threads.
 pub trait Cracker: Sync + Send {
     /// Attempt to crack the cryptography using the password, return true on success.
     fn attempt(&self, password: &[u8]) -> bool;

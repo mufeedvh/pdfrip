@@ -8,9 +8,8 @@ use anyhow::{bail, Context};
 use pretty_env_logger::env_logger::Env;
 
 use crate::core::cracker::pdf::PDFCracker;
-use crate::core::production::Producer;
 use crate::core::production::dictionary::LineProducer;
-use std::sync::Arc;
+use crate::core::production::Producer;
 
 use crate::cli::interface;
 use crate::core::{engine, production};
@@ -33,11 +32,9 @@ pub fn main() -> anyhow::Result<()> {
             cli.upper_bound,
         );
         Box::from(producer)
-
     } else if let Some(path) = cli.wordlist {
         let producer = LineProducer::from(&path);
         Box::from(producer)
-
     } else {
         bail!("No supported arguments found, contact the developers since this means the argument parser is not working properly");
     };
@@ -45,7 +42,7 @@ pub fn main() -> anyhow::Result<()> {
     let cracker =
         PDFCracker::from_file(&cli.filename).context(format!("path: {}", cli.filename))?;
 
-    engine::crack_file(cli.number_of_threads, Arc::new(cracker), producer)?;
-    
+    engine::crack_file(cli.number_of_threads, Box::new(cracker), producer)?;
+
     Ok(())
 }

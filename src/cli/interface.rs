@@ -2,9 +2,16 @@ use clap::{ArgGroup, Parser};
 use colored::*;
 
 pub fn banner() {
-    eprintln!("{}", include_str!("banner").bold().red())
+    // We also make sure to grab the binary version from Cargo.toml
+    println!(
+        "{}",
+        format!(include_str!("banner"), env!("CARGO_PKG_VERSION"))
+            .bold()
+            .red()
+    );
 }
 
+// Let's use Clap to ensure our program can only be called with valid parameter combinations
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 #[clap(group(ArgGroup::new("actions").required(true).args(&["wordlist", "num-bruteforce",])))]
