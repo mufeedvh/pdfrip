@@ -13,7 +13,6 @@ pub fn banner() {
 
 #[derive(Args, Debug, Clone)]
 pub struct DictionaryArgs {
-    #[clap(long)]
     /// Path to the pasword wordlist.
     pub wordlist: String,
 }
@@ -29,7 +28,6 @@ pub struct RangeArgs {
 
 #[derive(Args, Debug, Clone)]
 pub struct CustomQueryArgs {
-    #[clap(long, short)]
     /// Start a bruteforce attack with a custom formatted query and a number range like `-q STRING{1000-3000}`
     pub custom_query: String,
 
