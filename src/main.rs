@@ -4,10 +4,13 @@ extern crate log;
 mod cli;
 mod core;
 
-use anyhow::{bail, Context};
+use crate::core::production::dates::DateProducer;
+
+use anyhow::Context;
 use pretty_env_logger::env_logger::Env;
 
 use crate::core::cracker::pdf::PDFCracker;
+use crate::core::production::custom_query::CustomQuery;
 use crate::core::production::dictionary::LineProducer;
 use crate::core::production::Producer;
 
@@ -22,25 +25,32 @@ pub fn main() -> anyhow::Result<()> {
     // print a banner to look cool!
     interface::banner();
     let cli = interface::args();
-
-    let padding: usize = cli.upper_bound.checked_ilog10().unwrap() as usize + 1;
-
-    let producer: Box<dyn Producer> = if cli.num_bruteforce {
-        let producer = production::number_ranges::RangeProducer::new(
-            padding,
-            cli.lower_bound,
-            cli.upper_bound,
-        );
-        Box::from(producer)
-    } else if let Some(path) = cli.wordlist {
-        let producer = LineProducer::from(&path);
-        Box::from(producer)
-    } else {
-        bail!("No supported arguments found, contact the developers since this means the argument parser is not working properly");
-    };
-
     let cracker =
         PDFCracker::from_file(&cli.filename).context(format!("path: {}", cli.filename))?;
+
+    let producer: Box<dyn Producer> = match cli.subcommand {
+        interface::Method::Dictionary(args) => {
+            let producer = LineProducer::from(&args.wordlist);
+            Box::from(producer)
+        }
+        interface::Method::NumberBruteforce(args) => {
+            let padding: usize = args.upper_bound.checked_ilog10().unwrap() as usize + 1;
+            let producer = production::number_ranges::RangeProducer::new(
+                padding,
+                args.lower_bound,
+                args.upper_bound,
+            );
+            Box::from(producer)
+        }
+        interface::Method::CustomQuery(args) => {
+            let producer = CustomQuery::new(&args.custom_query, args.add_preceding_zeros);
+            Box::from(producer)
+        }
+        interface::Method::Date(args) => {
+            let producer = DateProducer::new(args.year);
+            Box::from(producer)
+        }
+    };
 
     engine::crack_file(cli.number_of_threads, Box::new(cracker), producer)?;
 
