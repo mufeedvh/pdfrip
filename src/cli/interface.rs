@@ -19,7 +19,7 @@ pub struct DictionaryArgs {
 }
 
 #[derive(Args, Debug, Clone)]
-pub struct BruteforceArgs {
+pub struct RangeArgs {
     #[clap(short, long)]
     /// Enabling this adds preceding zeros to number ranges matching the upper bound length.
     pub add_preceding_zeros: bool,
@@ -39,17 +39,17 @@ pub struct CustomQueryArgs {
 }
 
 #[derive(Args, Debug, Clone)]
-pub struct DateTimeArgs {
+pub struct DateArgs {
     #[clap(long, short)]
     pub year: usize,
 }
 
 #[derive(Subcommand, Debug, Clone)]
 pub enum Method {
-    Dictionary(DictionaryArgs),
-    NumberBruteforce(BruteforceArgs),
+    Wordlist(DictionaryArgs),
+    Range(RangeArgs),
     CustomQuery(CustomQueryArgs),
-    Date(DateTimeArgs),
+    Date(DateArgs),
 }
 
 // Let's use Clap to ensure our program can only be called with valid parameter combinations

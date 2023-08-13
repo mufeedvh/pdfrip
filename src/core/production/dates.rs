@@ -56,7 +56,7 @@ impl Producer for DateProducer {
     }
 
     fn size(&self) -> usize {
-        12*31
+        12 * 31
     }
 }
 
@@ -77,6 +77,5 @@ mod tests {
         let size = producer.size();
         let passwords = producer.inner.collect::<Vec<String>>();
         assert_eq!(size, passwords.len())
-
     }
 }

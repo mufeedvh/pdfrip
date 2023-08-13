@@ -7,7 +7,7 @@ pub trait Cracker: Sync + Send {
 pub mod pdf {
     use std::{fs, io};
 
-    use pdf::file::File;
+    use pdf::file::FileOptions;
 
     use super::Cracker;
 
@@ -22,7 +22,10 @@ pub mod pdf {
 
     impl Cracker for PDFCracker {
         fn attempt(&self, password: &[u8]) -> bool {
-            File::from_data_password(self.0.as_ref(), password).is_ok()
+            FileOptions::cached()
+                .password(password)
+                .load(self.0.as_ref())
+                .is_ok()
         }
     }
 }

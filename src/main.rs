@@ -29,11 +29,11 @@ pub fn main() -> anyhow::Result<()> {
         PDFCracker::from_file(&cli.filename).context(format!("path: {}", cli.filename))?;
 
     let producer: Box<dyn Producer> = match cli.subcommand {
-        interface::Method::Dictionary(args) => {
+        interface::Method::Wordlist(args) => {
             let producer = LineProducer::from(&args.wordlist);
             Box::from(producer)
         }
-        interface::Method::NumberBruteforce(args) => {
+        interface::Method::Range(args) => {
             let padding: usize = args.upper_bound.checked_ilog10().unwrap() as usize + 1;
             let producer = production::number_ranges::RangeProducer::new(
                 padding,
