@@ -34,7 +34,11 @@ pub fn main() -> anyhow::Result<()> {
             Box::from(producer)
         }
         interface::Method::Range(args) => {
-            let padding: usize = args.upper_bound.checked_ilog10().unwrap() as usize + 1;
+            let padding: usize = if args.add_preceding_zeros {
+                args.upper_bound.checked_ilog10().unwrap() as usize + 1
+            } else {
+                0
+            };
             let producer = production::number_ranges::RangeProducer::new(
                 padding,
                 args.lower_bound,
