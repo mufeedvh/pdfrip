@@ -1,26 +1,62 @@
-#[cfg(not(windows))]
-#[global_allocator]
-static ALLOC: snmalloc_rs::SnMalloc = snmalloc_rs::SnMalloc;
+#[macro_use]
+extern crate log;
 
 mod cli;
 mod core;
 
-use crate::cli::interface;
-use crate::core::engine;
+use crate::core::production::dates::DateProducer;
 
-pub fn main() -> std::io::Result<()> {
+use anyhow::Context;
+use pretty_env_logger::env_logger::Env;
+
+use crate::core::cracker::pdf::PDFCracker;
+use crate::core::production::custom_query::CustomQuery;
+use crate::core::production::dictionary::LineProducer;
+use crate::core::production::Producer;
+
+use crate::cli::interface;
+use crate::core::{engine, production};
+
+pub fn main() -> anyhow::Result<()> {
+    let env = Env::default().filter_or("LOG_LEVEL", "info");
+    pretty_env_logger::formatted_timed_builder()
+        .parse_env(env)
+        .init();
     // print a banner to look cool!
     interface::banner();
-    
     let cli = interface::args();
+    let cracker =
+        PDFCracker::from_file(&cli.filename).context(format!("path: {}", cli.filename))?;
 
-    let pdfrip = engine::PDFRip {
-        filepath: String::from(cli.value_of("filename").unwrap()),
-        wordlist_path: cli.value_of("wordlist").map(|s| String::from(s)),
-        num_bruteforce: cli.value_of("num_bruteforce").map(|s| String::from(s)),
-        date_bruteforce: cli.value_of("date_bruteforce").map(|s| String::from(s)),
-        custom_query: cli.value_of("custom_query").map(|s| String::from(s))
+    let producer: Box<dyn Producer> = match cli.subcommand {
+        interface::Method::Wordlist(args) => {
+            let producer = LineProducer::from(&args.wordlist);
+            Box::from(producer)
+        }
+        interface::Method::Range(args) => {
+            let padding: usize = if args.add_preceding_zeros {
+                args.upper_bound.checked_ilog10().unwrap() as usize + 1
+            } else {
+                0
+            };
+            let producer = production::number_ranges::RangeProducer::new(
+                padding,
+                args.lower_bound,
+                args.upper_bound,
+            );
+            Box::from(producer)
+        }
+        interface::Method::CustomQuery(args) => {
+            let producer = CustomQuery::new(&args.custom_query, args.add_preceding_zeros);
+            Box::from(producer)
+        }
+        interface::Method::Date(args) => {
+            let producer = DateProducer::new(args.year);
+            Box::from(producer)
+        }
     };
 
-    pdfrip.crack()
+    engine::crack_file(cli.number_of_threads, Box::new(cracker), producer)?;
+
+    Ok(())
 }

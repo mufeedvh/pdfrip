@@ -1,48 +1,73 @@
-use clap::{Command, Arg, ArgMatches};
+use clap::{Args, Parser, Subcommand};
 use colored::*;
 
 pub fn banner() {
-    eprintln!("{}", include_str!("banner").bold().red())
+    // We also make sure to grab the binary version from Cargo.toml
+    println!(
+        "{}",
+        format!(include_str!("banner"), env!("CARGO_PKG_VERSION"))
+            .bold()
+            .red()
+    );
 }
 
-pub fn args() -> ArgMatches {
-    Command::new("pdfrip")
-        .version("1.0.0")
-        .author("Mufeed VH <contact@mufeedvh.com>")
-        .about("A fast PDF password cracking utility written in Rust.")
-        .arg(Arg::new("filename")
-            .help("The filename of the PDF")
-            .value_name("PDF FILE PATH")
-            .required(true)
-            .index(1))
-        .arg(Arg::new("wordlist")
-            .short('w')
-            .long("wordlist")
-            .value_name("WORDLIST FILE PATH")
-            .help("Path to the password wordlist.")
-            .takes_value(true))
-        .arg(Arg::new("num_bruteforce")
-            .short('n')
-            .long("num-bruteforce")
-            .value_name("NUMBER RANGE")
-            .help("Bruteforce numbers for the password with the given range.\n\nlike `-n 0-1000000`")
-            .takes_value(true))
-        .arg(Arg::new("date_bruteforce")
-            .short('d')
-            .long("date-bruteforce")
-            .value_name("YEAR")
-            .help("Bruteforce dates (all 365 days in DDMMYYYY format) for the password with the given year.")
-            .takes_value(true))
-        .arg(Arg::new("custom_query")
-            .short('q')
-            .long("custom-query")
-            .value_name("QUERY")
-            .help("Start a bruteforce attack with a custom formatted query and a number range.\n\nlike `-q STRING{1000-3000}`")
-            .takes_value(true))
-        .arg(Arg::new("add_preceding_zeros")
-            .short('z')
-            .long("add-preceding-zeros")
-            .help("Enabling this adds preceding zeros to number ranges in custom queries.\n\nlike `STRING{10-5000}` would start from `0010` matching the length of the ending range.")
-            .takes_value(false))
-        .get_matches()
+#[derive(Args, Debug, Clone)]
+pub struct DictionaryArgs {
+    /// Path to the pasword wordlist.
+    pub wordlist: String,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct RangeArgs {
+    #[clap(short, long)]
+    /// Enabling this adds preceding zeros to number ranges matching the upper bound length.
+    pub add_preceding_zeros: bool,
+    pub lower_bound: usize,
+    pub upper_bound: usize,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct CustomQueryArgs {
+    /// Start a bruteforce attack with a custom formatted query and a number range like `-q STRING{1000-3000}`
+    pub custom_query: String,
+
+    #[clap(short, long)]
+    /// Enabling this adds preceding zeros to number ranges in custom queries.\n\nlike `STRING{10-5000}` would start from `0010` matching the length of the ending range.
+    pub add_preceding_zeros: bool,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct DateArgs {
+    #[clap(long, short)]
+    pub year: usize,
+}
+
+#[derive(Subcommand, Debug, Clone)]
+pub enum Method {
+    Wordlist(DictionaryArgs),
+    Range(RangeArgs),
+    CustomQuery(CustomQueryArgs),
+    Date(DateArgs),
+}
+
+// Let's use Clap to ensure our program can only be called with valid parameter combinations
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+/// A fast PDF password cracking utility written in Rust.
+pub struct Arguments {
+    #[clap(short, long, default_value_t = 4)]
+    /// Number of worker threads
+    pub number_of_threads: usize,
+
+    #[clap(short, long)]
+    /// The filename of the PDF
+    pub filename: String,
+
+    #[command(subcommand)]
+    /// Bruteforcing method
+    pub subcommand: Method,
+}
+
+pub fn args() -> Arguments {
+    Arguments::parse()
 }

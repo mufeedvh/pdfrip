@@ -19,9 +19,12 @@ jobs:
           default: true
           override: true
          
+      - name: Test
+        run: cargo test --all
+
       - name: Build
         run: cargo build --all --release && strip target/release/pdfrip && mv target/release/pdfrip target/release/pdfrip_amd64
-    
+
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
@@ -44,6 +47,9 @@ jobs:
           toolchain: stable
           default: true
           override: true
+
+      - name: Test
+        run: cargo test --all
 
       - name: Build
         run: cargo build --all --release
@@ -70,6 +76,9 @@ jobs:
           target: x86_64-apple-darwin
           default: true
           override: true
+
+      - name: Test
+        run: cargo test --all
 
       - name: Build for mac
         run: cargo build --all --release && strip target/release/pdfrip && mv target/release/pdfrip target/release/pdfrip_darwin

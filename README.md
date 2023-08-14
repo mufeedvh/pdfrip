@@ -27,9 +27,9 @@
 ## Features
 
 - **Fast:** Performs about 50k-100k+ passwords per second utilising full CPU cores.
-- **Custom Query Builder:** You can write your own queries like `STRING{69-420}` with the `-q` option which would generate a wordlist with the full number range.
-- **Date Bruteforce:** You can pass in an year as the input with the `-d` option which would bruteforce all 365 days of the year in `DDMMYYYY` format which is a pretty commonly used password format for PDFs.
-- **Number Bruteforce:** Just give a number range like `5000-100000` with the `-n` option and it would bruteforce with the whole range.
+- **Custom Query Builder:** You can write your own queries like `STRING{69-420}` which would generate and use a wordlist with the full number range.
+- **Date Bruteforce:** You can pass in an year which would bruteforce all 365 days of the year in `DDMMYYYY` format which is a pretty commonly used password format for PDFs.
+- **Number Bruteforce:** Just give a number range like `5000-100000` and it would bruteforce with the whole range.
 
 ## Installation
 
@@ -74,27 +74,27 @@ Get a list of all the arguments:
 
     $ pdfrip --help
     
-Start a dictionary attack with a wordlist **(-w/--wordlist)**:
+Start a dictionary attack with a wordlist:
 
-    $ pdfrip encrypted.pdf -w rockyou.txt
+    $ pdfrip -f encrypted.pdf wordlist rockyou.txt
     
-Bruteforce number ranges for the password **(-n/--num-bruteforce)**:
+Bruteforce number ranges for the password:
 
-    $ pdfrip encrypted.pdf -n 1000-9999
+    $ pdfrip -f encrypted.pdf range 1000 9999
     
-Bruteforce all dates in a year for the password in `DDMMYYYY` format **(-d/--date-bruteforce)**:
+Bruteforce all dates in a year for the password in `DDMMYYYY` format:
 
-    $ pdfrip encrypted.pdf -d 1999
+    $ pdfrip -f encrypted.pdf date 1999
     
-Build a custom query to generate a wordlist **(-q/--custom-query)**: (useful when you know the password format)
+Build a custom query to generate a wordlist: (useful when you know the password format)
 
-    $ pdfrip encrypted.pdf -q ALICE{1000-9999}
+    $ pdfrip -f encrypted.pdf custom-query ALICE{1000-9999}
     
-    $ pdfrip encrypted.pdf -q DOC-ID{0-99}-FILE
+    $ pdfrip -f encrypted.pdf custom-query DOC-ID{0-99}-FILE
     
-Enable preceding zeros for custom queries **(-z/--add-preceding-zeros)**: (which would make `{10-5000}` to `{0010-5000}` matching the end range's digits)
+Enable preceding zeros for custom queries: (which would make `{10-5000}` to `{0010-5000}` matching the end range's digits)
 
-    $ pdfrip encrypted.pdf -q ALICE{10-9999} --add-preceding-zeros
+    $ pdfrip -f encrypted.pdf custom-query ALICE{10-9999} --add-preceding-zeros
 
 ## Contribution
 

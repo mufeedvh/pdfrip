@@ -1,16 +1,18 @@
 [package]
 name = "pdfrip"
-version = "1.0.0"
+version = "2.0.0"
 edition = "2021"
+authors = ["Mufeed VH <contact@mufeedvh.com>", "Pommaq"]
 
 [dependencies]
-pdf = "0.7.2"
-rayon = "1.5.1"
 indicatif = "0.16.2"
-clap = "3.0.14"
-colored = "2.0.0"
-[target.'cfg(not(target_os = "windows"))'.dependencies]
-snmalloc-rs = "0.2.28"
+log = "0.4.19"
+anyhow = "1.0.72"
+crossbeam = "0.8.2"
+pretty_env_logger = "0.5.0"
+clap = { version = "4.3.21", features = ["derive"] }
+colored = "2.0.4"
+pdf = "0.8.1"
 
 [profile.release]
 lto = 'thin'
