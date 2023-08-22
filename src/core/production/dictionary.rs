@@ -38,13 +38,14 @@ impl LineProducer {
 }
 
 impl Producer for LineProducer {
-    fn next(&mut self) -> Option<Vec<u8>> {
+    fn next(&mut self) -> Result<Option<Vec<u8>>, String> {
         let mut buffer = String::new();
         match self.inner.read_line(&mut buffer) {
-            Ok(_) => Some(buffer.into_bytes()),
+            Ok(line) if line == 0 => Ok(None),
+            Ok(_) => Ok(Some(buffer.into_bytes())),
             Err(err) => {
                 debug!("Unable to read from reader: {}", err);
-                None
+                Err(String::from("Error reading from wordlist file."))
             }
         }
     }

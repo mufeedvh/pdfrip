@@ -44,14 +44,14 @@ impl DateProducer {
 }
 
 impl Producer for DateProducer {
-    fn next(&mut self) -> Option<Vec<u8>> {
+    fn next(&mut self) -> Result<Option<Vec<u8>>, String> {
         let next = self.inner.next();
         match next {
             Some(datemonth) => {
                 let password = format!("{}{}", datemonth, self.year).into_bytes();
-                Some(password)
+                Ok(Some(password))
             }
-            None => None,
+            None => Ok(None),
         }
     }
 
