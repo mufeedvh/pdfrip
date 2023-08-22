@@ -17,14 +17,14 @@ impl RangeProducer {
 }
 
 impl Producer for RangeProducer {
-    fn next(&mut self) -> Option<Vec<u8>> {
+    fn next(&mut self) -> Result<Option<Vec<u8>>, String> {
         let next = self.inner.next();
         match next {
             Some(number) => {
                 let data = format!("{:0>width$}", number, width = self.padding_len).into_bytes();
-                Some(data)
+                Ok(Some(data))
             }
-            None => None,
+            None => Ok(None),
         }
     }
 

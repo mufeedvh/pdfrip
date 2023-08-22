@@ -85,14 +85,14 @@ impl CustomQuery {
 }
 
 impl Producer for CustomQuery {
-    fn next(&mut self) -> Option<Vec<u8>> {
+    fn next(&mut self) -> Result<Option<Vec<u8>>, String> {
         let num = self.inner.next();
         match num {
             Some(value) => {
                 let full_number = format!("{:0>width$}", value, width = self.min_digits);
-                Some(format!("{}{}{}", self.prefix, full_number, self.suffix).into_bytes())
+                Ok(Some(format!("{}{}{}", self.prefix, full_number, self.suffix).into_bytes()))
             }
-            None => None,
+            None => Ok(None),
         }
     }
 

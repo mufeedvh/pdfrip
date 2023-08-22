@@ -51,6 +51,8 @@ pub fn crack_file(
 
         info!("Starting crack...");
         let mut success = None;
+        let mut error_message = None;
+
         let progress_bar = ProgressBar::new(producer.size() as u64);
         progress_bar.set_draw_delta(1000);
 
@@ -63,13 +65,21 @@ pub fn crack_file(
                 }
                 Err(_) => {
                     // They have not finished yet. Send some passwords
-                    if let Some(password) = producer.next() {
-                        // Ignore any errors incase the reading threads have exited
-                        let _ = sender.send(Message::Password(password));
-                        progress_bar.inc(1);
-                    } else {
-                        // Out of passwords, exit loop
-                        break;
+                    match producer.next() {
+                        Ok(Some(password)) => {
+                            // Ignore any errors in case the reading threads have exited
+                            let _ = sender.send(Message::Password(password));
+                            progress_bar.inc(1);
+                        }
+                        Ok(None) => {
+                            // Out of passwords, exit loop
+                            break;
+                        }
+                        Err(error_msg) => {
+                            // Error occurred
+                            error_message = Some(error_msg);
+                            break;
+                        }
                     }
                 }
             };
@@ -77,8 +87,12 @@ pub fn crack_file(
         progress_bar.finish();
         // Kill any threads that are still running
         for _ in 0..no_workers {
-            // Ignore any errors incase the threads have exited
+            // Ignore any errors in case the threads have exited
             let _ = sender.send(Message::Die);
+        }
+
+        if let Some(msg) = error_message {
+            println!("Error Occurred: {msg}");
         }
 
         match success {

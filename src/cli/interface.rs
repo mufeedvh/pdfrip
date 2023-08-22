@@ -13,7 +13,7 @@ pub fn banner() {
 
 #[derive(Args, Debug, Clone)]
 pub struct DictionaryArgs {
-    /// Path to the pasword wordlist.
+    /// Path to the password wordlist.
     pub wordlist: String,
 }
 
