@@ -42,7 +42,13 @@ impl Producer for LineProducer {
         let mut buffer = String::new();
         match self.inner.read_line(&mut buffer) {
             Ok(line) if line == 0 => Ok(None),
-            Ok(_) => Ok(Some(buffer.into_bytes())),
+            Ok(_) => {
+                // read_line() returns a String that ends with a newline char unless it is the
+                // last line of the file.
+                let mut bytes = buffer.into_bytes();
+                if bytes.last() == Some(&b'\n') { bytes.pop(); }
+                Ok(Some(bytes.to_vec()))
+            }
             Err(err) => {
                 debug!("Unable to read from reader: {}", err);
                 Err(String::from("Error reading from wordlist file."))
