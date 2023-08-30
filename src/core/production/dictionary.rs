@@ -43,13 +43,11 @@ impl LineProducer {
 impl Producer for LineProducer {
     fn next(&mut self) -> Result<Option<Vec<u8>>, String> {
         loop {
-            let mut buffer = String::new();
-            match self.inner.read_line(&mut buffer) {
+            let mut bytes = Vec::new();
+            match self.inner.read_until(b'\n', &mut bytes) {
                 Ok(line) if line == 0 => return Ok(None),
                 Ok(_) => {
-                    // read_line() returns a String that ends with a newline char unless it is the
-                    // last line of the file.
-                    let mut bytes = buffer.into_bytes();
+                    // read_until() ends with a newline char unless it is the last line of the file.
                     if bytes.last() == Some(&b'\n') { bytes.pop(); }
                     return Ok(Some(bytes))
                 }

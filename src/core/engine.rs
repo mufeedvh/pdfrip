@@ -101,10 +101,24 @@ pub fn crack_file(
 
         match success {
             Some(password) => {
-                info!(
-                    "Success! Found password: {}",
-                    String::from_utf8_lossy(&password)
-                )
+                match std::str::from_utf8(&password) {
+                    Ok(password) => {
+                        info!(
+                            "Success! Found password: {}",
+                            password
+                        )
+                    }
+                    Err(_) => {
+                        let hex_string: String = password.iter()
+                            .map(|b| format!("{:02x}", b))
+                            .collect::<Vec<String>>()
+                            .join(" ");
+                        info!(
+                            "Success! Found password, but it contains invalid UTF-8 characters. Displaying as hex: {}",
+                            hex_string
+                        )
+                    }
+                }
             }
             None => {
                 info!("Failed to crack file...")
@@ -112,7 +126,7 @@ pub fn crack_file(
         }
         // We cannot use the ? operator here due to size constraints
     })
-    .expect("Something went wrong when cracking file");
+        .expect("Something went wrong when cracking file");
 
     Ok(())
 }
