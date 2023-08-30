@@ -8,7 +8,6 @@ use super::Producer;
 pub struct LineProducer {
     inner: Box<dyn BufRead>,
     size: usize,
-    invalid_lines: usize,
 }
 
 impl LineProducer {
@@ -34,7 +33,6 @@ impl LineProducer {
         Self {
             inner: Box::from(reader),
             size: lines,
-            invalid_lines: 0,
         }
     }
 }
@@ -58,17 +56,5 @@ impl Producer for LineProducer {
 
     fn size(&self) -> usize {
         self.size
-    }
-
-    fn error_msg(&self) -> Option<String> {
-        if self.invalid_lines == 0 {
-            None
-        } else {
-            Some(format!(
-                "Warning: {} invalid line{} found in wordlist file.",
-                self.invalid_lines,
-                if self.invalid_lines == 1 {""} else {"s"}
-            ))
-        }
     }
 }

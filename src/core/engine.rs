@@ -95,10 +95,6 @@ pub fn crack_file(
             println!("Error Occurred: {msg}");
         }
 
-        if let Some(msg) = producer.error_msg() {
-            info!("{}", msg);
-        }
-
         match success {
             Some(password) => {
                 match std::str::from_utf8(&password) {
