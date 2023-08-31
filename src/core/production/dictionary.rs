@@ -39,10 +39,14 @@ impl LineProducer {
 
 impl Producer for LineProducer {
     fn next(&mut self) -> Result<Option<Vec<u8>>, String> {
-        let mut buffer = String::new();
-        match self.inner.read_line(&mut buffer) {
+        let mut bytes = Vec::new();
+        match self.inner.read_until(b'\n', &mut bytes) {
             Ok(line) if line == 0 => Ok(None),
-            Ok(_) => Ok(Some(buffer.into_bytes())),
+            Ok(_) => {
+                // read_until() ends with a newline char unless it is the last line of the file.
+                if bytes.last() == Some(&b'\n') { bytes.pop(); }
+                Ok(Some(bytes))
+            }
             Err(err) => {
                 debug!("Unable to read from reader: {}", err);
                 Err(String::from("Error reading from wordlist file."))
