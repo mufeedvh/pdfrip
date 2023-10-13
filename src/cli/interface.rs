@@ -37,6 +37,15 @@ pub struct CustomQueryArgs {
 }
 
 #[derive(Args, Debug, Clone)]
+pub struct DefaultQueryArgs {
+    #[clap(long, default_value_t = 4)]
+    pub min_length: u32,
+
+    #[clap(long)]
+    pub max_length: u32,
+}
+
+#[derive(Args, Debug, Clone)]
 pub struct DateArgs {
     #[clap(long, short)]
     pub year: usize,
@@ -48,6 +57,7 @@ pub enum Method {
     Range(RangeArgs),
     CustomQuery(CustomQueryArgs),
     Date(DateArgs),
+    DefaultQuery(DefaultQueryArgs),
 }
 
 // Let's use Clap to ensure our program can only be called with valid parameter combinations

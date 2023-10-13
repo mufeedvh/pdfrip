@@ -15,3 +15,7 @@ pub mod custom_query;
 
 /// handles creating passwords matching dates in DDMMYYYY format
 pub mod dates;
+
+/// Does a traditional brute-force search through all possible combinations
+/// of letters and numbers
+pub mod default_query;
