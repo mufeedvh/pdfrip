@@ -14,7 +14,7 @@
 
 ## ℹ️ Introduction
 
-**pdfrip** is a fast multithreaded PDF password cracking utility written in Rust with support for wordlist based dictionary attacks, date and number range bruteforcing, and a custom query builder for password formats.
+**pdfrip** is a fast multithreaded PDF password cracking utility written in Rust with support for wordlist based dictionary attacks, date, number range, and alphanumeric bruteforcing, and a custom query builder for password formats.
 
 <div align="center">
   <table>
@@ -30,6 +30,7 @@
 - **Custom Query Builder:** You can write your own queries like `STRING{69-420}` which would generate and use a wordlist with the full number range.
 - **Date Bruteforce:** You can pass in a year which would bruteforce all 365 days of the year in `DDMMYYYY` format which is a pretty commonly used password format for PDFs.
 - **Number Bruteforce:** Just give a number range like `5000-100000` and it would bruteforce with the whole range.
+- **Default Bruteforce:** Specify a maximum and optionally a minimum length for the password search and all passwords of length 4 up to the specified maximum consisting of letters and numbers (`a-zA-Z0-9`) will be tried
 
 ## Installation
 
@@ -85,13 +86,21 @@ Bruteforce number ranges for the password:
 Bruteforce all dates in a year for the password in `DDMMYYYY` format:
 
     $ pdfrip -f encrypted.pdf date 1999
-    
+
+Bruteforce arbitrary strings of length 4-8:
+
+    $ pdfrip -f encrypted.pdf default-query --max-length 8
+
+Bruteforce arbitrary strings of length 3:
+
+    $ pdfrip -f encrypted.pdf default-query --max-length 3 --min-length 3
+
 Build a custom query to generate a wordlist: (useful when you know the password format)
 
     $ pdfrip -f encrypted.pdf custom-query ALICE{1000-9999}
-    
+
     $ pdfrip -f encrypted.pdf custom-query DOC-ID{0-99}-FILE
-    
+
 Enable preceding zeros for custom queries: (which would make `{10-5000}` to `{0010-5000}` matching the end range's digits)
 
     $ pdfrip -f encrypted.pdf custom-query ALICE{10-9999} --add-preceding-zeros

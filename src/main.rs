@@ -11,6 +11,7 @@ use pretty_env_logger::env_logger::Env;
 
 use crate::core::cracker::pdf::PDFCracker;
 use crate::core::production::custom_query::CustomQuery;
+use crate::core::production::default_query::DefaultQuery;
 use crate::core::production::dictionary::LineProducer;
 use crate::core::production::Producer;
 
@@ -52,6 +53,10 @@ pub fn main() -> anyhow::Result<()> {
         }
         interface::Method::Date(args) => {
             let producer = DateProducer::new(args.year);
+            Box::from(producer)
+        }
+        interface::Method::DefaultQuery(args) => {
+            let producer = DefaultQuery::new(args.max_length, args.min_length);
             Box::from(producer)
         }
     };
