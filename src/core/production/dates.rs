@@ -2,7 +2,7 @@ use super::Producer;
 
 pub struct DateProducer {
     current: usize,
-    end:  usize,
+    end: usize,
     inner: Box<dyn Iterator<Item = String>>,
 }
 
@@ -38,7 +38,7 @@ impl DateProducer {
         let dates = pregenerate_dates().into_iter();
 
         Self {
-            current: start, 
+            current: start,
             end,
             inner: Box::from(dates),
         }
@@ -60,17 +60,14 @@ impl Producer for DateProducer {
             };
         }
         return Ok(None);
-
-
     }
 
     fn size(&self) -> usize {
-
         let mut years = self.end - self.current;
         if years == 0 {
             years = 1;
         }
-        12*31*years
+        12 * 31 * years
     }
 }
 
@@ -96,7 +93,7 @@ mod tests {
     #[test]
     fn can_run_1_year() {
         let producer = DateProducer::new(1337, 1337);
-        let size = 12*31;
+        let size = 12 * 31;
         let passwords = producer.inner.collect::<Vec<String>>();
         assert_eq!(size, passwords.len())
     }
