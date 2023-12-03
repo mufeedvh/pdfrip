@@ -26,8 +26,6 @@ pub fn main() -> anyhow::Result<()> {
     // print a banner to look cool!
     interface::banner();
     let cli = interface::args();
-    let cracker =
-        PDFCracker::from_file(&cli.filename).context(format!("path: {}", cli.filename))?;
 
     let producer: Box<dyn Producer> = match cli.subcommand {
         interface::Method::Wordlist(args) => {
@@ -61,7 +59,8 @@ pub fn main() -> anyhow::Result<()> {
         }
     };
 
-    engine::crack_file(cli.number_of_threads, cracker, producer)?;
+    engine::crack_file(cli.number_of_threads, 
+        PDFCracker::from_file(&cli.filename).context(format!("path: {}", cli.filename))?, producer)?;
 
     Ok(())
 }

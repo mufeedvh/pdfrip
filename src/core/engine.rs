@@ -8,7 +8,7 @@ use indicatif::ProgressBar;
 
 use crate::core::production::Producer;
 
-use super::cracker::{pdf::PDFCracker, Cracker};
+use super::cracker::pdf::PDFCracker;
 
 pub fn crack_file(
     no_workers: usize,

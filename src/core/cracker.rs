@@ -1,15 +1,8 @@
-/// We require cracker implementations to support being sent between threads.
-pub trait Cracker: Sync + Send{
-    /// Attempt to crack the cryptography using the password, return true on success.
-    fn attempt(&self, password: &[u8]) -> bool;
-}
-
 pub mod pdf {
     use std::{fs, io};
 
     use pdf::file::FileOptions;
 
-    use super::Cracker;
     #[derive(Clone)]
     pub struct PDFCracker(Vec<u8>);
 
@@ -20,8 +13,9 @@ pub mod pdf {
         }
     }
 
-    impl Cracker for PDFCracker {
-        fn attempt(&self, password: &[u8]) -> bool {
+    impl PDFCracker {
+        /// Attempt to crack the cryptography using the password, return true on success.
+        pub fn attempt(&self, password: &[u8]) -> bool {
             FileOptions::cached()
                 .password(password)
                 .load(self.0.as_ref())
