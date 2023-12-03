@@ -1,7 +1,8 @@
 use super::Producer;
 
 pub struct DateProducer {
-    year: usize,
+    current: usize,
+    end:  usize,
     inner: Box<dyn Iterator<Item = String>>,
 }
 
@@ -31,13 +32,14 @@ fn pregenerate_dates() -> Vec<String> {
 }
 
 impl DateProducer {
-    pub fn new(year: usize) -> Self {
+    pub fn new(start: usize, end: usize) -> Self {
         // Note that we will always have the same amount of months and days since we are doing this naively.
         // The only part that varies is the year, so why not pre-generate days and months?
         let dates = pregenerate_dates().into_iter();
 
         Self {
-            year,
+            current: start, 
+            end,
             inner: Box::from(dates),
         }
     }
@@ -45,18 +47,30 @@ impl DateProducer {
 
 impl Producer for DateProducer {
     fn next(&mut self) -> Result<Option<Vec<u8>>, String> {
-        let next = self.inner.next();
-        match next {
-            Some(datemonth) => {
-                let password = format!("{}{}", datemonth, self.year).into_bytes();
-                Ok(Some(password))
-            }
-            None => Ok(None),
+        while self.current <= self.end {
+            let next = self.inner.next();
+            match next {
+                Some(datemonth) => {
+                    let password = format!("{}{}", datemonth, self.current).into_bytes();
+                    return Ok(Some(password));
+                }
+                None => {
+                    self.current += 1;
+                }
+            };
         }
+        return Ok(None);
+
+
     }
 
     fn size(&self) -> usize {
-        12 * 31
+
+        let mut years = self.end - self.current;
+        if years == 0 {
+            years = 1;
+        }
+        12*31*years
     }
 }
 
@@ -68,13 +82,21 @@ mod tests {
 
     #[test]
     fn instantiate_instance() {
-        let _ = DateProducer::new(1337);
+        let _ = DateProducer::new(1337, 1338);
     }
 
     #[test]
     fn test_size_is_correct() {
-        let producer = DateProducer::new(1337);
+        let producer = DateProducer::new(1337, 1338);
         let size = producer.size();
+        let passwords = producer.inner.collect::<Vec<String>>();
+        assert_eq!(size, passwords.len())
+    }
+
+    #[test]
+    fn can_run_1_year() {
+        let producer = DateProducer::new(1337, 1337);
+        let size = 12*31;
         let passwords = producer.inner.collect::<Vec<String>>();
         assert_eq!(size, passwords.len())
     }
