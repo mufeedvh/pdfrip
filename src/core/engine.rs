@@ -10,18 +10,13 @@ use crate::core::production::Producer;
 
 use super::cracker::{pdf::PDFCracker, Cracker};
 
-enum Message {
-    Password(Vec<u8>),
-    Die,
-}
-
 pub fn crack_file(
     no_workers: usize,
     cracker: PDFCracker,
     mut producer: Box<dyn Producer>,
 ) -> anyhow::Result<()> {
     // Spin up workers
-    let (sender, r): (Sender<Message>, Receiver<_>) = crossbeam::channel::bounded(BUFFER_SIZE);
+    let (sender, r): (Sender<Vec<u8>>, Receiver<_>) = crossbeam::channel::bounded(BUFFER_SIZE);
 
     let (success_sender, success_reader) = crossbeam::channel::unbounded::<Vec<u8>>();
     let mut handles = vec![];
@@ -30,19 +25,12 @@ pub fn crack_file(
         let success = success_sender.clone();
         let r2 = r.clone();
         let c2 = cracker.clone();
-        let id = std::thread::spawn(move || {
-            while let Ok(message) = r2.recv() {
-                match message {
-                    Message::Password(passwd) => {
-                        if c2.attempt(&passwd) {
-                            // inform main thread we found a good password then die
-                            success.send(passwd).unwrap_or_default();
-                            return;
-                        }
-                    }
-                    Message::Die => {
-                        return;
-                    }
+        let id: std::thread::JoinHandle<()> = std::thread::spawn(move || {
+            while let Ok(passwd) = r2.recv() {
+                if c2.attempt(&passwd) {
+                    // inform main thread we found a good password then die
+                    success.send(passwd).unwrap_or_default();
+                    return;
                 }
             }
         });
@@ -82,7 +70,7 @@ pub fn crack_file(
 
         match producer.next() {
             Ok(Some(password)) => {
-                if let Err(_) = sender.send(Message::Password(password)) {
+                if let Err(_) = sender.send(password) {
                     // This should only happen if their reciever is closed.
                     error!("unable to send next password since channel is closed");
                 }
@@ -100,9 +88,7 @@ pub fn crack_file(
     }
 
     // Ensure any threads that are still running will eventually exit
-    for _ in 0..no_workers {
-        sender.send(Message::Die).unwrap_or_default();
-    }
+    drop(sender);
 
     let found_password = match success {
         Some(result) => Some(result),
