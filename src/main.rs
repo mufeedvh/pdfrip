@@ -61,7 +61,7 @@ pub fn main() -> anyhow::Result<()> {
         }
     };
 
-    engine::crack_file(cli.number_of_threads, Box::new(cracker), producer)?;
+    engine::crack_file(cli.number_of_threads, cracker, producer)?;
 
     Ok(())
 }
