@@ -3,6 +3,8 @@
 // so the queue won't be consumed before the producer has time to wake up
 const BUFFER_SIZE: usize = 200;
 
+use std::sync::Arc;
+
 use crossbeam::channel::{Receiver, Sender, TryRecvError};
 use indicatif::ProgressBar;
 
@@ -20,11 +22,12 @@ pub fn crack_file(
 
     let (success_sender, success_reader) = crossbeam::channel::unbounded::<Vec<u8>>();
     let mut handles = vec![];
+    let cracker_handle = Arc::from(cracker);
 
     for _ in 0..no_workers {
         let success = success_sender.clone();
         let r2 = r.clone();
-        let c2 = cracker.clone();
+        let c2 = cracker_handle.clone();
         let id: std::thread::JoinHandle<()> = std::thread::spawn(move || {
             while let Ok(passwd) = r2.recv() {
                 if c2.attempt(&passwd) {

@@ -59,8 +59,11 @@ pub fn main() -> anyhow::Result<()> {
         }
     };
 
-    engine::crack_file(cli.number_of_threads, 
-        PDFCracker::from_file(&cli.filename).context(format!("path: {}", cli.filename))?, producer)?;
+    engine::crack_file(
+        cli.number_of_threads,
+        PDFCracker::from_file(&cli.filename).context(format!("path: {}", cli.filename))?,
+        producer,
+    )?;
 
     Ok(())
 }
