@@ -46,9 +46,12 @@ pub struct DefaultQueryArgs {
 }
 
 #[derive(Args, Debug, Clone)]
+/// Enumerate a span of years, testing passwords in DDMMYYYY format
 pub struct DateArgs {
-    #[clap(long, short)]
-    pub year: usize,
+    /// Starting year in format YYYY, inclusive
+    pub start: usize,
+    /// Final year in format YYYY, inclusive.
+    pub end: usize,
 }
 
 #[derive(Subcommand, Debug, Clone)]

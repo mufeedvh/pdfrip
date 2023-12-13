@@ -83,9 +83,9 @@ Bruteforce number ranges for the password:
 
     $ pdfrip -f encrypted.pdf range 1000 9999
     
-Bruteforce all dates in a year for the password in `DDMMYYYY` format:
+Bruteforce all dates in a span (inclusive in both ends) of years for the password in `DDMMYYYY` format:
 
-    $ pdfrip -f encrypted.pdf date 1999
+    $ pdfrip -f encrypted.pdf date 1900 2000
 
 Bruteforce arbitrary strings of length 4-8:
 

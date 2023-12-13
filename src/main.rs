@@ -52,7 +52,7 @@ pub fn main() -> anyhow::Result<()> {
             Box::from(producer)
         }
         interface::Method::Date(args) => {
-            let producer = DateProducer::new(args.year);
+            let producer = DateProducer::new(args.start, args.end);
             Box::from(producer)
         }
         interface::Method::DefaultQuery(args) => {
