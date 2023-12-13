@@ -3,126 +3,134 @@
 // so the queue won't be consumed before the producer has time to wake up
 const BUFFER_SIZE: usize = 200;
 
-use crossbeam::{
-    channel::{Receiver, Sender},
-    thread,
-};
+use std::sync::Arc;
+
+use crossbeam::channel::{Receiver, Sender, TryRecvError};
 use indicatif::ProgressBar;
 
 use crate::core::production::Producer;
 
-use super::cracker::Cracker;
-
-enum Message {
-    Password(Vec<u8>),
-    Die,
-}
+use super::cracker::pdf::PDFCracker;
 
 pub fn crack_file(
     no_workers: usize,
-    cracker: Box<dyn Cracker>,
+    cracker: PDFCracker,
     mut producer: Box<dyn Producer>,
 ) -> anyhow::Result<()> {
     // Spin up workers
-    let (sender, r): (Sender<Message>, Receiver<Message>) =
-        crossbeam::channel::bounded(BUFFER_SIZE);
+    let (sender, r): (Sender<Vec<u8>>, Receiver<_>) = crossbeam::channel::bounded(BUFFER_SIZE);
 
     let (success_sender, success_reader) = crossbeam::channel::unbounded::<Vec<u8>>();
+    let mut handles = vec![];
+    let cracker_handle = Arc::from(cracker);
 
-    thread::scope(|s| {
-        for _ in 0..no_workers {
-            s.builder()
-                .spawn(|_| {
-                    while let Ok(message) = r.recv() {
-                        match message {
-                            Message::Password(password) => {
-                                if cracker.attempt(&password) {
-                                    // inform main thread we found a good password then die
-                                    let _ = success_sender.send(password);
-                                    return;
-                                }
-                            }
-                            Message::Die => return,
-                        }
-                    }
-                })
-                .unwrap();
-        }
-
-        info!("Starting crack...");
-        let mut success = None;
-        let mut error_message = None;
-
-        let progress_bar = ProgressBar::new(producer.size() as u64);
-        progress_bar.set_draw_delta(1000);
-
-        loop {
-            // Check if any thread succeeded..
-            match success_reader.try_recv() {
-                Ok(password) => {
-                    success = Some(password);
-                    break;
+    for _ in 0..no_workers {
+        let success = success_sender.clone();
+        let r2 = r.clone();
+        let c2 = cracker_handle.clone();
+        let id: std::thread::JoinHandle<()> = std::thread::spawn(move || {
+            while let Ok(passwd) = r2.recv() {
+                if c2.attempt(&passwd) {
+                    // inform main thread we found a good password then die
+                    success.send(passwd).unwrap_or_default();
+                    return;
                 }
-                Err(_) => {
-                    // They have not finished yet. Send some passwords
-                    match producer.next() {
-                        Ok(Some(password)) => {
-                            // Ignore any errors in case the reading threads have exited
-                            let _ = sender.send(Message::Password(password));
-                            progress_bar.inc(1);
-                        }
-                        Ok(None) => {
-                            // Out of passwords, exit loop
-                            break;
-                        }
-                        Err(error_msg) => {
-                            // Error occurred
-                            error_message = Some(error_msg);
-                            break;
-                        }
+            }
+        });
+        handles.push(id);
+    }
+    // Drop our ends
+    drop(r);
+    drop(success_sender);
+
+    info!("Starting crack...");
+
+    let mut success = None;
+
+    let progress_bar = ProgressBar::new(producer.size() as u64);
+    progress_bar.set_draw_delta(1000);
+
+    loop {
+        match success_reader.try_recv() {
+            Ok(password) => {
+                success = Some(password);
+                break;
+            }
+            Err(e) => {
+                match e {
+                    TryRecvError::Empty => {
+                        // This is fine *lit*
+                    }
+                    TryRecvError::Disconnected => {
+                        // All threads have died. Wtf?
+                        // let's just report an error and break
+                        error!("All workers have exited prematurely, cannot continue operations");
+                        break;
                     }
                 }
-            };
-        }
-        progress_bar.finish();
-        // Kill any threads that are still running
-        for _ in 0..no_workers {
-            // Ignore any errors in case the threads have exited
-            let _ = sender.send(Message::Die);
+            }
         }
 
-        if let Some(msg) = error_message {
-            println!("Error Occurred: {msg}");
+        match producer.next() {
+            Ok(Some(password)) => {
+                if let Err(_) = sender.send(password) {
+                    // This should only happen if their reciever is closed.
+                    error!("unable to send next password since channel is closed");
+                }
+                progress_bar.inc(1);
+            }
+            Ok(None) => {
+                trace!("out of passwords, exiting loop");
+                break;
+            }
+            Err(error_msg) => {
+                error!("error occured while sending: {error_msg}");
+                break;
+            }
         }
+    }
 
-        match success {
-            Some(password) => {
-                match std::str::from_utf8(&password) {
-                    Ok(password) => {
-                        info!(
-                            "Success! Found password: {}",
-                            password
-                        )
-                    }
-                    Err(_) => {
-                        let hex_string: String = password.iter()
-                            .map(|b| format!("{:02x}", b))
-                            .collect::<Vec<String>>()
-                            .join(" ");
-                        info!(
+    // Ensure any threads that are still running will eventually exit
+    drop(sender);
+
+    let found_password = match success {
+        Some(result) => Some(result),
+        None => {
+            match success_reader.recv() {
+                Ok(result) => Some(result),
+                Err(e) => {
+                    // Channel is empty and disconnected, i.e. all threads have exited
+                    // and none found the password
+                    debug!("{}", e);
+                    None
+                }
+            }
+        }
+    };
+
+    progress_bar.finish();
+
+    match found_password {
+        Some(password) => match std::str::from_utf8(&password) {
+            Ok(password) => {
+                info!("Success! Found password: {}", password)
+            }
+            Err(_) => {
+                let hex_string: String = password
+                    .iter()
+                    .map(|b| format!("{:02x}", b))
+                    .collect::<Vec<String>>()
+                    .join(" ");
+                info!(
                             "Success! Found password, but it contains invalid UTF-8 characters. Displaying as hex: {}",
                             hex_string
                         )
-                    }
-                }
             }
-            None => {
-                info!("Failed to crack file...")
-            }
+        },
+        None => {
+            info!("Failed to crack file...")
         }
-        // We cannot use the ? operator here due to size constraints
-    })
-        .expect("Something went wrong when cracking file");
+    }
 
     Ok(())
 }
