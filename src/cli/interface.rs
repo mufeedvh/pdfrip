@@ -2,6 +2,10 @@ use clap::{Args, Parser, Subcommand};
 use colored::*;
 
 pub fn banner() {
+    // Set the terminal to support ANSI escape codes on Windows
+    #[cfg(windows)]
+    control::set_virtual_terminal(true).unwrap();
+
     // We also make sure to grab the binary version from Cargo.toml
     println!(
         "{}",
@@ -13,6 +17,7 @@ pub fn banner() {
 
 #[derive(Args, Debug, Clone)]
 pub struct DictionaryArgs {
+    #[clap(required = true)]
     /// Path to the password wordlist.
     pub wordlist: String,
 }

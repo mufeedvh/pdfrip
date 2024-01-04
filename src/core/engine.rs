@@ -6,7 +6,7 @@ const BUFFER_SIZE: usize = 200;
 use std::sync::Arc;
 
 use crossbeam::channel::{Receiver, Sender, TryRecvError};
-use indicatif::ProgressBar;
+use indicatif::{ProgressBar, ProgressStyle};
 
 use crate::core::production::Producer;
 
@@ -43,12 +43,14 @@ pub fn crack_file(
     drop(r);
     drop(success_sender);
 
-    info!("Starting crack...");
+    info!("Starting password cracking job...");
 
     let mut success = None;
 
     let progress_bar = ProgressBar::new(producer.size() as u64);
     progress_bar.set_draw_delta(1000);
+    progress_bar.set_style(ProgressStyle::default_bar()
+        .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} {percent}% {per_sec} ETA: {eta}"));
 
     loop {
         match success_reader.try_recv() {

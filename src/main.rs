@@ -25,9 +25,9 @@ pub fn main() -> anyhow::Result<()> {
         .init();
     // print a banner to look cool!
     interface::banner();
-    let cli = interface::args();
+    let cli_args = interface::args();
 
-    let producer: Box<dyn Producer> = match cli.subcommand {
+    let producer: Box<dyn Producer> = match cli_args.subcommand {
         interface::Method::Wordlist(args) => {
             let producer = LineProducer::from(&args.wordlist);
             Box::from(producer)
@@ -59,9 +59,11 @@ pub fn main() -> anyhow::Result<()> {
         }
     };
 
+    let filename = cli_args.filename;
+
     engine::crack_file(
-        cli.number_of_threads,
-        PDFCracker::from_file(&cli.filename).context(format!("path: {}", cli.filename))?,
+        cli_args.number_of_threads,
+        PDFCracker::from_file(&filename).context(format!("path: {}", filename))?,
         producer,
     )?;
 
