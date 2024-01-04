@@ -96,15 +96,15 @@ mod tests {
     fn test_size_is_correct() {
         let producer = DateProducer::new(1337, 1338);
         let size = producer.size();
-        let passwords = producer.inner.collect::<Vec<String>>();
+        let passwords = producer.inner.take(size).collect::<Vec<String>>();
         assert_eq!(size, passwords.len())
     }
-
+    
     #[test]
     fn can_run_1_year() {
         let producer = DateProducer::new(1337, 1337);
         let size = 12 * 31;
-        let passwords = producer.inner.collect::<Vec<String>>();
+        let passwords = producer.inner.take(size).collect::<Vec<String>>();
         assert_eq!(size, passwords.len())
     }
 }
