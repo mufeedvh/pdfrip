@@ -14,37 +14,26 @@
 
 ## ℹ️ Introduction
 
-**pdfrip** is a fast multithreaded PDF password cracking utility written in Rust with support for wordlist based dictionary attacks, date, number range, and alphanumeric bruteforcing, and a custom query builder for password formats.
+
+**pdfrip** is a fast multithreaded PDF password cracking utility written in Rust with support for wordlist-based dictionary attacks, date, number range, and alphanumeric brute-forcing, and a custom query builder for password formats.
 
 <div align="center">
   <table>
     <tr>
-      <td><img height="300" width="400" src="https://user-images.githubusercontent.com/26198477/153601211-e3be5dcb-17c4-425d-9259-65fe4b679290.png"></td>
+      <td><img height="300" width="400" src="screenshots/pdfrip-screenshot.png"></td>
     </tr>
   </table>
 </div>
 
 ## Features
 
-- **Fast:** Performs about 50k-100k+ passwords per second utilising full CPU cores.
+- **Fast:** Performs about 50k-100k+ passwords per second utilizing full CPU cores.
 - **Custom Query Builder:** You can write your own queries like `STRING{69-420}` which would generate and use a wordlist with the full number range.
 - **Date Bruteforce:** You can pass in a year which would bruteforce all 365 days of the year in `DDMMYYYY` format which is a pretty commonly used password format for PDFs.
 - **Number Bruteforce:** Just give a number range like `5000-100000` and it would bruteforce with the whole range.
 - **Default Bruteforce:** Specify a maximum and optionally a minimum length for the password search and all passwords of length 4 up to the specified maximum consisting of letters and numbers (`a-zA-Z0-9`) will be tried
 
 ## Installation
-
-```
-$ curl -L https://github.com/mufeedvh/pdfrip/releases/download/v1.0.0/pdfrip_amd64 -o pdfrip
-```
-
-(`Linux AMD x86-64`)
-
-**OR**
-
-Download the executable from [**Releases**](https://github.com/mufeedvh/pdfrip/releases) for your OS.
-
-**OR**
 
 Install with `cargo`:
 
