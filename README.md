@@ -20,7 +20,7 @@
 <div align="center">
   <table>
     <tr>
-      <td><img height="300" width="400" src="screenshots/pdfrip-screenshot.png"></td>
+      <td><img height="300" width="400" src="screenshots/pdfrip-usage.gif"></td>
     </tr>
   </table>
 </div>
