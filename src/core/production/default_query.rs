@@ -10,7 +10,7 @@ pub struct DefaultQuery {
 
 impl DefaultQuery {
     pub fn new(max_length: u32, min_length: u32) -> Self {
-        let mut char_set: Vec<u8> = (b'0'..=b'9').chain(b'a'..=b'z').chain(b'A'..=b'Z').collect();
+        let mut char_set: Vec<u8> = (b'0'..=b'9').chain(b'A'..=b'Z').collect();
         char_set.sort();
         Self{max_length: max_length, min_length: min_length,
             current: vec!(char_set[0]; min_length.try_into().unwrap()), char_set: char_set, rolled: false}
