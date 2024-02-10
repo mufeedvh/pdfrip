@@ -1,18 +1,32 @@
-[package]
-name = "pdfrip"
+[workspace]
+members = ["crates/producer"]
+
+[workspace.package]
 version = "2.0.1"
 edition = "2021"
 authors = ["Mufeed VH <mufeed@lyminal.space>", "Pommaq"]
 
+[workspace.dependencies]
+bytecount = "0.6.7"
+log = "0.4.19"
+
+
+[package]
+name = "pdfrip"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+
 [dependencies]
 indicatif = "0.16.2"
-log = "0.4.19"
+log.workspace = true
 anyhow = "1.0.72"
 crossbeam = "0.8.2"
 pretty_env_logger = "0.5.0"
 colored = "2.0.4"
 pdf = "0.8.1"
-bytecount = "0.6.7"
+bytecount.workspace = true
 clap = { version = "4.4.13", features = ["derive"] }
 
 [profile.release]

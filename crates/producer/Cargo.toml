@@ -1,0 +1,9 @@
+[package]
+name = "producer"
+version.workspace = true
+edition.workspace = true
+
+
+[dependencies]
+bytecount.workspace = true
+log.workspace = true
