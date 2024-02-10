@@ -1,19 +1,4 @@
 use clap::{Args, Parser, Subcommand};
-use colored::*;
-
-pub fn banner() {
-    // Set the terminal to support ANSI escape codes on Windows
-    #[cfg(windows)]
-    control::set_virtual_terminal(true).unwrap();
-
-    // We also make sure to grab the binary version from Cargo.toml
-    println!(
-        "{}",
-        format!(include_str!("banner"), env!("CARGO_PKG_VERSION"))
-            .bold()
-            .red()
-    );
-}
 
 #[derive(Args, Debug, Clone)]
 pub struct DictionaryArgs {
