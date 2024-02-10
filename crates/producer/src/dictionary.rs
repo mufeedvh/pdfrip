@@ -31,7 +31,9 @@ impl Producer for LineProducer {
             Ok(line) if line == 0 => Ok(None),
             Ok(_) => {
                 // read_until() ends with a newline char unless it is the last line of the file.
-                if bytes.last() == Some(&b'\n') { bytes.pop(); }
+                if bytes.last() == Some(&b'\n') {
+                    bytes.pop();
+                }
                 Ok(Some(bytes))
             }
             Err(err) => {

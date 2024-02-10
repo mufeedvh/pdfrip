@@ -1,6 +1,16 @@
 #[macro_use]
 extern crate log;
 
+/// Exposes our available Producers
+pub mod producers {
+    pub use producer::*;
+}
+
+/// Expose our available crackers
+pub mod crackers {
+    pub use cracker::PDFCracker;
+}
+
 // We will run a SPMC layout where a single producer produces passwords
 // consumed by multiple workers. This ensures there is a buffer
 // so the queue won't be consumed before the producer has time to wake up

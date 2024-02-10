@@ -99,7 +99,7 @@ mod tests {
         let passwords = producer.inner.take(size).collect::<Vec<String>>();
         assert_eq!(size, passwords.len())
     }
-    
+
     #[test]
     fn can_run_1_year() {
         let producer = DateProducer::new(1337, 1337);

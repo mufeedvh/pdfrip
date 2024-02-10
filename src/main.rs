@@ -1,33 +1,27 @@
-#[macro_use]
-extern crate log;
-
 mod cli;
-mod core;
-
-use crate::core::production::dates::DateProducer;
 
 use anyhow::Context;
+use cli::interface::Method;
+use engine::{
+    crackers::PDFCracker,
+    producers::{
+        custom_query::CustomQuery, dates::DateProducer, default_query::DefaultQuery,
+        dictionary::LineProducer, number_ranges::RangeProducer, Producer,
+    },
+};
 use pretty_env_logger::env_logger::Env;
 
-use crate::core::cracker::pdf::PDFCracker;
-use crate::core::production::custom_query::CustomQuery;
-use crate::core::production::default_query::DefaultQuery;
-use crate::core::production::dictionary::LineProducer;
-use crate::core::production::Producer;
-
 use crate::cli::interface;
-use crate::core::{engine, production};
 
-pub fn main() -> anyhow::Result<()> {
+fn init_logger() {
     let env = Env::default().filter_or("LOG_LEVEL", "info");
     pretty_env_logger::formatted_timed_builder()
         .parse_env(env)
         .init();
-    // print a banner to look cool!
-    interface::banner();
-    let cli_args = interface::args();
+}
 
-    let producer: Box<dyn Producer> = match cli_args.subcommand {
+fn select_producer(subcommand: Method) -> Box<dyn Producer> {
+    match subcommand {
         interface::Method::Wordlist(args) => {
             let producer = LineProducer::from(&args.wordlist);
             Box::from(producer)
@@ -38,11 +32,7 @@ pub fn main() -> anyhow::Result<()> {
             } else {
                 0
             };
-            let producer = production::number_ranges::RangeProducer::new(
-                padding,
-                args.lower_bound,
-                args.upper_bound,
-            );
+            let producer = RangeProducer::new(padding, args.lower_bound, args.upper_bound);
             Box::from(producer)
         }
         interface::Method::CustomQuery(args) => {
@@ -57,7 +47,18 @@ pub fn main() -> anyhow::Result<()> {
             let producer = DefaultQuery::new(args.max_length, args.min_length);
             Box::from(producer)
         }
-    };
+    }
+}
+
+pub fn main() -> anyhow::Result<()> {
+    init_logger();
+
+    // print a banner to look cool!
+    interface::banner();
+
+    let cli_args = interface::args();
+
+    let producer: Box<dyn Producer> = select_producer(cli_args.subcommand);
 
     let filename = cli_args.filename;
 
