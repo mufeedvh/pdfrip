@@ -91,7 +91,7 @@ pub fn crack_file(
 
         match producer.next() {
             Ok(Some(password)) => {
-                if let Err(_) = sender.send(password) {
+                if sender.send(password).is_err() {
                     // This should only happen if their reciever is closed.
                     error!("unable to send next password since channel is closed");
                 }

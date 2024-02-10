@@ -13,10 +13,10 @@ impl DefaultQuery {
         let mut char_set: Vec<u8> = (b'0'..=b'9').chain(b'A'..=b'Z').collect();
         char_set.sort();
         Self {
-            max_length: max_length,
-            min_length: min_length,
+            max_length,
+            min_length,
             current: vec![char_set[0]; min_length.try_into().unwrap()],
-            char_set: char_set,
+            char_set,
             rolled: false,
         }
     }
