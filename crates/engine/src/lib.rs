@@ -19,7 +19,6 @@ const BUFFER_SIZE: usize = 200;
 use std::sync::Arc;
 
 use crossbeam::channel::{Receiver, Sender, TryRecvError};
-use indicatif::{ProgressBar, ProgressStyle};
 
 use producer::Producer;
 
@@ -28,10 +27,12 @@ use cracker::PDFCracker;
 /// Returns Ok(Some(<Password in bytes>)) if it successfully cracked the file.
 /// Returns Ok(None) if it did not find the password.
 /// Returns Err if something went wrong.
+/// Callback is called once very time it consumes a password from producer
 pub fn crack_file(
     no_workers: usize,
     cracker: PDFCracker,
     mut producer: Box<dyn Producer>,
+    callback: Box<dyn Fn()>,
 ) -> anyhow::Result<Option<Vec<u8>>> {
     // Spin up workers
     let (sender, r): (Sender<Vec<u8>>, Receiver<_>) = crossbeam::channel::bounded(BUFFER_SIZE);
@@ -63,11 +64,6 @@ pub fn crack_file(
 
     let mut success = None;
 
-    let progress_bar = ProgressBar::new(producer.size() as u64);
-    progress_bar.set_draw_delta(1000);
-    progress_bar.set_style(ProgressStyle::default_bar()
-        .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} {percent}% {per_sec} ETA: {eta}"));
-
     loop {
         match success_reader.try_recv() {
             Ok(password) => {
@@ -95,7 +91,7 @@ pub fn crack_file(
                     // This should only happen if their reciever is closed.
                     error!("unable to send next password since channel is closed");
                 }
-                progress_bar.inc(1);
+                callback()
             }
             Ok(None) => {
                 trace!("out of passwords, exiting loop");
@@ -125,8 +121,6 @@ pub fn crack_file(
             }
         }
     };
-
-    progress_bar.finish();
 
     Ok(found_password)
 }

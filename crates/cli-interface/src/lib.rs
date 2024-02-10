@@ -8,6 +8,7 @@ use engine::{
         dictionary::LineProducer, number_ranges::RangeProducer, Producer,
     },
 };
+use indicatif::{ProgressBar, ProgressStyle};
 use log::info;
 
 /// Contains the Argument parser
@@ -54,6 +55,29 @@ fn select_producer(subcommand: Method) -> Box<dyn Producer> {
     }
 }
 
+fn wrapper(
+    no_workers: usize,
+    cracker: PDFCracker,
+    producer: Box<dyn Producer>,
+) -> anyhow::Result<Option<Vec<u8>>> {
+    let progress_bar = ProgressBar::new(producer.size() as u64);
+    progress_bar.set_draw_delta(1000);
+    progress_bar.set_style(ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} {percent}% {per_sec} ETA: {eta}"));
+
+    // We're lucky. It appears ProgressBar does not call ProgressBar::finish(self) when dropped.
+    let bar = progress_bar.clone();
+
+    let callback = move || {
+        bar.inc(1);
+    };
+
+    let res = engine::crack_file(no_workers, cracker, producer, Box::from(callback));
+    progress_bar.finish();
+
+    res
+}
+
 pub fn entrypoint(args: Arguments) -> Result {
     // Print our cool banner!
     banner::banner();
@@ -61,7 +85,7 @@ pub fn entrypoint(args: Arguments) -> Result {
 
     let filename = args.filename;
 
-    let res = engine::crack_file(
+    let res = wrapper(
         args.number_of_threads,
         PDFCracker::from_file(&filename).context(format!("path: {}", filename))?,
         producer,

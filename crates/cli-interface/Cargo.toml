@@ -10,4 +10,5 @@ clap.workspace = true
 colored.workspace = true
 engine.workspace = true
 anyhow.workspace = true
+indicatif.workspace = true
 log.workspace = true

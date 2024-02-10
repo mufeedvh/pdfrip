@@ -12,4 +12,3 @@ cracker.workspace = true
 log.workspace = true
 anyhow.workspace = true
 crossbeam.workspace = true
-indicatif.workspace = true
