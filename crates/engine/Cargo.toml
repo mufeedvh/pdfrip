@@ -1,0 +1,14 @@
+[package]
+name = "engine"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+producer.workspace = true
+cracker.workspace = true
+log.workspace = true
+anyhow.workspace = true
+crossbeam.workspace = true

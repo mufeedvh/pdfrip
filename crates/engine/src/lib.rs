@@ -1,3 +1,16 @@
+#[macro_use]
+extern crate log;
+
+/// Exposes our available Producers
+pub mod producers {
+    pub use producer::*;
+}
+
+/// Expose our available crackers
+pub mod crackers {
+    pub use cracker::PDFCracker;
+}
+
 // We will run a SPMC layout where a single producer produces passwords
 // consumed by multiple workers. This ensures there is a buffer
 // so the queue won't be consumed before the producer has time to wake up
@@ -6,17 +19,21 @@ const BUFFER_SIZE: usize = 200;
 use std::sync::Arc;
 
 use crossbeam::channel::{Receiver, Sender, TryRecvError};
-use indicatif::{ProgressBar, ProgressStyle};
 
-use crate::core::production::Producer;
+use producer::Producer;
 
-use super::cracker::pdf::PDFCracker;
+use cracker::PDFCracker;
 
+/// Returns Ok(Some(<Password in bytes>)) if it successfully cracked the file.
+/// Returns Ok(None) if it did not find the password.
+/// Returns Err if something went wrong.
+/// Callback is called once very time it consumes a password from producer
 pub fn crack_file(
     no_workers: usize,
     cracker: PDFCracker,
     mut producer: Box<dyn Producer>,
-) -> anyhow::Result<()> {
+    callback: Box<dyn Fn()>,
+) -> anyhow::Result<Option<Vec<u8>>> {
     // Spin up workers
     let (sender, r): (Sender<Vec<u8>>, Receiver<_>) = crossbeam::channel::bounded(BUFFER_SIZE);
 
@@ -47,11 +64,6 @@ pub fn crack_file(
 
     let mut success = None;
 
-    let progress_bar = ProgressBar::new(producer.size() as u64);
-    progress_bar.set_draw_delta(1000);
-    progress_bar.set_style(ProgressStyle::default_bar()
-        .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} {percent}% {per_sec} ETA: {eta}"));
-
     loop {
         match success_reader.try_recv() {
             Ok(password) => {
@@ -75,11 +87,11 @@ pub fn crack_file(
 
         match producer.next() {
             Ok(Some(password)) => {
-                if let Err(_) = sender.send(password) {
+                if sender.send(password).is_err() {
                     // This should only happen if their reciever is closed.
                     error!("unable to send next password since channel is closed");
                 }
-                progress_bar.inc(1);
+                callback()
             }
             Ok(None) => {
                 trace!("out of passwords, exiting loop");
@@ -110,29 +122,5 @@ pub fn crack_file(
         }
     };
 
-    progress_bar.finish();
-
-    match found_password {
-        Some(password) => match std::str::from_utf8(&password) {
-            Ok(password) => {
-                info!("Success! Found password: {}", password)
-            }
-            Err(_) => {
-                let hex_string: String = password
-                    .iter()
-                    .map(|b| format!("{:02x}", b))
-                    .collect::<Vec<String>>()
-                    .join(" ");
-                info!(
-                            "Success! Found password, but it contains invalid UTF-8 characters. Displaying as hex: {}",
-                            hex_string
-                        )
-            }
-        },
-        None => {
-            info!("Failed to crack file...")
-        }
-    }
-
-    Ok(())
+    Ok(found_password)
 }

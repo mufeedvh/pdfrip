@@ -26,7 +26,11 @@ impl CustomQuery {
             size,
             prefix,
             suffix,
-            min_digits: if add_preceding_zeros { size.to_string().len() } else { 0 },
+            min_digits: if add_preceding_zeros {
+                size.to_string().len()
+            } else {
+                0
+            },
         }
     }
 
@@ -35,7 +39,12 @@ impl CustomQuery {
         let prefix = parts.next().unwrap_or("").to_string();
         let ranges_and_suffix = parts.next().unwrap_or("");
         let mut parts = ranges_and_suffix.split('}');
-        let ranges = parts.next().unwrap_or("").split(',').map(|s| s.to_string()).collect();
+        let ranges = parts
+            .next()
+            .unwrap_or("")
+            .split(',')
+            .map(|s| s.to_string())
+            .collect();
         let suffix = parts.next().unwrap_or("").to_string();
 
         (prefix, ranges, suffix)
@@ -56,7 +65,9 @@ impl Producer for CustomQuery {
             match iter.next() {
                 Some(value) => {
                     let full_number = format!("{:0>width$}", value, width = self.min_digits);
-                    return Ok(Some(format!("{}{}{}", self.prefix, full_number, self.suffix).into_bytes()));
+                    return Ok(Some(
+                        format!("{}{}{}", self.prefix, full_number, self.suffix).into_bytes(),
+                    ));
                 }
                 None => continue,
             }

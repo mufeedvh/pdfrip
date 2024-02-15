@@ -1,19 +1,45 @@
-[package]
-name = "pdfrip"
+[workspace]
+members = [ "crates/cli-interface", "crates/cracker", "crates/engine","crates/producer"]
+
+[workspace.package]
 version = "2.0.1"
 edition = "2021"
 authors = ["Mufeed VH <mufeed@lyminal.space>", "Pommaq"]
 
-[dependencies]
-indicatif = "0.16.2"
-log = "0.4.19"
-anyhow = "1.0.72"
-crossbeam = "0.8.2"
-pretty_env_logger = "0.5.0"
-colored = "2.0.4"
-pdf = "0.8.1"
+[workspace.dependencies]
+# First list our own crates here so others can simply
+# use the workspace entry instead of depending on the path to
+# these crates.
+producer.path="crates/producer"
+cracker.path="crates/cracker"
+engine.path="crates/engine"
+cli-interface.path="crates/cli-interface"
+
+# We add our subcrates' dependencies here to allow controlling versions from one location.
+# This makes it easier to see what crates are used in this project as well as 
+# avoids issue where e.g. "log" performs a breaking change, and two of our
+# crates use different major versions causing issues.
 bytecount = "0.6.7"
+log = "0.4.19"
+pdf = "0.8.1"
+anyhow = "1.0.72"
+indicatif = "0.16.2"
+crossbeam = "0.8.2"
 clap = { version = "4.4.13", features = ["derive"] }
+colored = "2.0.4"
+
+
+[package]
+name = "pdfrip"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+
+[dependencies]
+cli-interface.workspace = true
+anyhow.workspace = true
+pretty_env_logger = "0.5.0"
 
 [profile.release]
 lto = 'thin'
