@@ -10,7 +10,7 @@ pub struct DefaultQuery {
 
 impl DefaultQuery {
     pub fn new(max_length: u32, min_length: u32) -> Self {
-        let mut char_set: Vec<u8> = (b'0'..=b'9').chain(b'A'..=b'Z').collect();
+        let mut char_set: Vec<u8> = (b'0'..=b'9').chain(b'A'..=b'Z').chain(b'a'..=b'z').collect();
         char_set.sort();
         Self {
             max_length,
@@ -24,25 +24,24 @@ impl DefaultQuery {
 
 impl Producer for DefaultQuery {
     fn next(&mut self) -> Result<Option<Vec<u8>>, String> {
-        let mut next = self.current.clone();
         let mut stopped = false;
         for i in 0..next.len() {
-            let spot = match self.char_set.binary_search(&next[i]) {
+            let spot = match self.char_set.binary_search(&self.current[i]) {
                 Ok(spot) => spot,
                 Err(_) => return Err("Couldn't find character in character set".to_string()),
             };
             if spot >= self.char_set.len() - 1 {
-                next[i] = self.char_set[0];
+                self.current[i] = self.char_set[0];
             } else {
-                next[i] = self.char_set[spot + 1];
+                self.current[i] = self.char_set[spot + 1];
                 stopped = true;
                 break;
             }
         }
         if !stopped {
             // We rolled every digit to every character, now we need to add a new character
-            next.insert(0, self.char_set[0]);
-            if next.len() > self.max_length.try_into().unwrap() {
+            self.current.insert(0, self.char_set[0]);
+            if self.current.len() > self.max_length.try_into().unwrap() {
                 if self.rolled {
                     return Err("Out of elements".to_string());
                 } else {
@@ -55,7 +54,7 @@ impl Producer for DefaultQuery {
                 }
             }
         }
-        let return_value = std::mem::replace(&mut self.current, next);
+        let return_value = std::mem::take(&mut self.current);
         // For debugging and making sure all values are tried
         //match String::from_utf8(return_value.clone()) {
         //Ok(val)=>println!("Trying {}", val), _=>{}
