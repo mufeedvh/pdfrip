@@ -35,7 +35,11 @@
 
 ## Installation
 
-Install with `cargo`:
+### Download
+
+If you don't have cargo or rust installed, you can download a binary from the [release section](https://github.com/mufeedvh/pdfrip/releases/) and execute it.
+
+### Install with `cargo`:
 
     $ cargo install --git https://github.com/mufeedvh/pdfrip.git
     
