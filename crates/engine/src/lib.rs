@@ -8,7 +8,7 @@ pub mod producers {
 
 /// Expose our available crackers
 pub mod crackers {
-    pub use cracker::PDFCracker;
+    pub use cracker::{PDFCracker, PDFCrackerState};
 }
 
 // We will run a SPMC layout where a single producer produces passwords
@@ -22,7 +22,7 @@ use crossbeam::channel::{Receiver, Sender, TryRecvError};
 
 use producer::Producer;
 
-use cracker::PDFCracker;
+use cracker::{PDFCracker, PDFCrackerState};
 
 /// Returns Ok(Some(<Password in bytes>)) if it successfully cracked the file.
 /// Returns Ok(None) if it did not find the password.
@@ -46,8 +46,12 @@ pub fn crack_file(
         let r2 = r.clone();
         let c2 = cracker_handle.clone();
         let id: std::thread::JoinHandle<()> = std::thread::spawn(move || {
+            let Ok(mut cracker) = PDFCrackerState::from_cracker(&c2) else {
+                return
+            };
+
             while let Ok(passwd) = r2.recv() {
-                if c2.attempt(&passwd) {
+                if cracker.attempt(&passwd) {
                     // inform main thread we found a good password then die
                     success.send(passwd).unwrap_or_default();
                     return;

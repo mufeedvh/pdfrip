@@ -9,3 +9,4 @@ authors.workspace = true
 [dependencies]
 log.workspace = true
 pdf.workspace = true
+anyhow.workspace = true
