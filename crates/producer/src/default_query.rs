@@ -10,8 +10,17 @@ pub struct DefaultQuery {
 
 impl DefaultQuery {
     pub fn new(max_length: u32, min_length: u32) -> Self {
-        let mut char_set: Vec<u8> = (b'0'..=b'9').chain(b'A'..=b'Z').chain(b'a'..=b'z').collect();
+        let mut char_set: Vec<u8> = (b'0'..=b'9')
+            .chain(b'A'..=b'Z')
+            .chain(b'a'..=b'z')
+            .chain(b'!'..=b'/')  // Adding special characters from ASCII range ! (33) to / (47)
+            .chain(b':'..=b'@')  // Adding special characters from ASCII range : (58) to @ (64)
+            .chain(b'['..=b'`')  // Adding special characters from ASCII range [ (91) to ` (96)
+            .chain(b'{'..=b'~')  // Adding special characters from ASCII range { (123) to ~ (126)
+            .collect();
+
         char_set.sort();
+        
         Self {
             max_length,
             min_length,
@@ -25,7 +34,7 @@ impl DefaultQuery {
 impl Producer for DefaultQuery {
     fn next(&mut self) -> Result<Option<Vec<u8>>, String> {
         let mut stopped = false;
-        for i in 0..next.len() {
+        for i in 0..self.current.len() {
             let spot = match self.char_set.binary_search(&self.current[i]) {
                 Ok(spot) => spot,
                 Err(_) => return Err("Couldn't find character in character set".to_string()),
