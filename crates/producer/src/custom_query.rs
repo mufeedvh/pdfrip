@@ -1,11 +1,10 @@
 use super::Producer;
 
 pub struct CustomQuery {
-    inner: Vec<Box<dyn Iterator<Item = usize>>>,
+    inner: Vec<(usize, Box<dyn Iterator<Item = usize>>)>,
     size: usize,
     prefix: String,
     suffix: String,
-    min_digits: usize,
 }
 
 impl CustomQuery {
@@ -18,7 +17,12 @@ impl CustomQuery {
             let (start, end) = Self::parse_range(&range);
             size += end - start;
             let iterator: Box<dyn Iterator<Item = usize>> = Box::new(start..end);
-            inner.push(iterator);
+            let min_digits = if add_preceding_zeros {
+                (end - 1).to_string().len()
+            } else {
+                0
+            };
+            inner.push((min_digits, iterator));
         }
 
         Self {
@@ -26,11 +30,6 @@ impl CustomQuery {
             size,
             prefix,
             suffix,
-            min_digits: if add_preceding_zeros {
-                size.to_string().len()
-            } else {
-                0
-            },
         }
     }
 
@@ -61,10 +60,10 @@ impl CustomQuery {
 
 impl Producer for CustomQuery {
     fn next(&mut self) -> Result<Option<Vec<u8>>, String> {
-        for iter in &mut self.inner {
+        for (min_digits, iter) in &mut self.inner {
             match iter.next() {
                 Some(value) => {
-                    let full_number = format!("{:0>width$}", value, width = self.min_digits);
+                    let full_number = format!("{:0>width$}", value, width = min_digits);
                     return Ok(Some(
                         format!("{}{}{}", self.prefix, full_number, self.suffix).into_bytes(),
                     ));
