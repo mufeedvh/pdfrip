@@ -4,7 +4,7 @@ use std::collections::hash_map::HashMap;
 use anyhow::anyhow;
 use pdf::PdfError;
 use pdf::any::AnySync;
-use pdf::file::{Cache, Storage};
+use pdf::file::{Cache, NoLog, Storage};
 use pdf::object::{ParseOptions, PlainRef};
 
 #[derive(Clone)]
@@ -21,7 +21,7 @@ type ObjectCache = SimpleCache<Result<AnySync, Arc<PdfError>>>;
 type StreamCache = SimpleCache<Result<Arc<[u8]>, Arc<PdfError>>>;
 
 pub struct PDFCrackerState(
-    Storage<Vec<u8>, ObjectCache, StreamCache>
+    Storage<Vec<u8>, ObjectCache, StreamCache, NoLog>
 );
 
 impl PDFCrackerState {
@@ -32,6 +32,7 @@ impl PDFCrackerState {
             ParseOptions::strict(),
             SimpleCache::new(),
             SimpleCache::new(),
+            NoLog
         );
 
         match res {
