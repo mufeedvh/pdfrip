@@ -61,9 +61,9 @@ fn wrapper(
     producer: Box<dyn Producer>,
 ) -> anyhow::Result<Option<Vec<u8>>> {
     let progress_bar = ProgressBar::new(producer.size() as u64);
-    progress_bar.set_draw_delta(1000);
-    progress_bar.set_style(ProgressStyle::default_bar()
-            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} {percent}% {per_sec} ETA: {eta}"));
+    let style = ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} {percent}% {per_sec} ETA: {eta}")?;
+    progress_bar.set_style(style);
 
     // We're lucky. It appears ProgressBar does not call ProgressBar::finish(self) when dropped.
     let bar = progress_bar.clone();
