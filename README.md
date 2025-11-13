@@ -31,7 +31,7 @@
 - **Custom Query Builder:** You can write your own queries like `STRING{69-420}` which would generate and use a wordlist with the full number range.
 - **Date Bruteforce:** You can pass in a year which would bruteforce all 365 days of the year in `DDMMYYYY` format which is a pretty commonly used password format for PDFs.
 - **Number Bruteforce:** Just give a number range like `5000-100000` and it would bruteforce with the whole range.
-- **Default Bruteforce:** Specify a maximum and optionally a minimum length for the password search and all passwords of length 4 up to the specified maximum consisting of letters and numbers (`a-zA-Z0-9`) will be tried
+- **Default Bruteforce:** Specify a maximum and optionally a minimum length for the password search and all passwords of length 4 up to the specified maximum consisting of letters, numbers (`a-zA-Z0-9`) and other typical ASCII characters (`!#$%&()*+,-./:;<=>?@[\]^_{|}~`), space (` `) and quotes will be tried.
 
 ## Installation
 
