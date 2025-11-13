@@ -93,7 +93,7 @@ pub fn entrypoint(args: Arguments) -> Result {
     match res {
         Some(password) => match std::str::from_utf8(&password) {
             Ok(password) => {
-                info!("Success! Found password: {}", password)
+                info!("Success! Found password, displaying as UTF-8: '{}'", password)
             }
             Err(_) => {
                 let hex_string: String = password
@@ -102,7 +102,7 @@ pub fn entrypoint(args: Arguments) -> Result {
                     .collect::<Vec<String>>()
                     .join(" ");
                 info!(
-                            "Success! Found password, but it contains invalid UTF-8 characters. Displaying as hex: {}",
+                            "Success! Found password, but it contains invalid UTF-8 characters. Displaying as hex: '{}'",
                             hex_string
                         )
             }
