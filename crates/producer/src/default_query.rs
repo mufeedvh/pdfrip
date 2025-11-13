@@ -63,7 +63,7 @@ impl Producer for DefaultQuery {
                 }
             }
         }
-        let return_value = std::mem::take(&mut self.current);
+        let return_value = self.current.clone();
         // For debugging and making sure all values are tried
         //match String::from_utf8(return_value.clone()) {
         //Ok(val)=>println!("Trying {}", val), _=>{}
