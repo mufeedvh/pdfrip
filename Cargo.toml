@@ -21,7 +21,7 @@ cli-interface.path="crates/cli-interface"
 # crates use different major versions causing issues.
 bytecount = "0.6.7"
 log = "0.4.19"
-pdf = "0.8.1"
+pdf = "0.9.0"
 anyhow = "1.0.72"
 indicatif = "0.17"
 crossbeam = "0.8.2"
