@@ -1,11 +1,11 @@
-use std::{fs, io, cell::RefCell, sync::Arc};
 use std::collections::hash_map::HashMap;
+use std::{cell::RefCell, fs, io, sync::Arc};
 
 use anyhow::anyhow;
-use pdf::PdfError;
 use pdf::any::AnySync;
 use pdf::file::{Cache, NoLog, Storage};
 use pdf::object::{ParseOptions, PlainRef};
+use pdf::PdfError;
 
 #[derive(Clone)]
 pub struct PDFCracker(Vec<u8>);
@@ -20,9 +20,7 @@ impl PDFCracker {
 type ObjectCache = SimpleCache<Result<AnySync, Arc<PdfError>>>;
 type StreamCache = SimpleCache<Result<Arc<[u8]>, Arc<PdfError>>>;
 
-pub struct PDFCrackerState(
-    Storage<Vec<u8>, ObjectCache, StreamCache, NoLog>
-);
+pub struct PDFCrackerState(Storage<Vec<u8>, ObjectCache, StreamCache, NoLog>);
 
 impl PDFCrackerState {
     /// Init `pdf::file::Storage` so we can reuse it on each `attempt`.
@@ -32,7 +30,7 @@ impl PDFCrackerState {
             ParseOptions::strict(),
             SimpleCache::new(),
             SimpleCache::new(),
-            NoLog
+            NoLog,
         );
 
         match res {
@@ -43,15 +41,12 @@ impl PDFCrackerState {
 
     /// Attempt to crack the cryptography using the password, return true on success.
     pub fn attempt(&mut self, password: &[u8]) -> bool {
-        self.0.load_storage_and_trailer_password(password)
-            .is_ok()
+        self.0.load_storage_and_trailer_password(password).is_ok()
     }
 }
 
 /// Single-threaded adapter to use `HashMap` as a `pdf::file::Cache`.
-struct SimpleCache<T>(
-    RefCell<HashMap<PlainRef, T>>
-);
+struct SimpleCache<T>(RefCell<HashMap<PlainRef, T>>);
 
 impl<T: Clone> SimpleCache<T> {
     fn new() -> Self {
