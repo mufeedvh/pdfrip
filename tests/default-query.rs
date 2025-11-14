@@ -33,3 +33,23 @@ fn success_pdf2() {
 
     assert!(matches!(res, Code::Success), "Failed cracking file.")
 }
+
+#[test]
+#[ignore = "This is slow"]
+fn success_pdf_space_support() {
+    let args = arguments::Arguments {
+        number_of_threads: 4,
+        filename: "examples/encrypted_00 0_bbbb.pdf".to_string(),
+        subcommand: arguments::Method::DefaultQuery(arguments::DefaultQueryArgs {
+            min_length: 4,
+            max_length: 4,
+        }),
+    };
+
+    let res = entrypoint(args).expect("An error occured when cracking file");
+
+    assert!(
+        matches!(res, Code::Success),
+        "Failed to crack PDF with space-containing password. Expected to find '00 0' but cracking returned failure."
+    )
+}
