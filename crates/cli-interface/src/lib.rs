@@ -93,7 +93,10 @@ pub fn entrypoint(args: Arguments) -> Result {
     match res {
         Some(password) => match std::str::from_utf8(&password) {
             Ok(password) => {
-                info!("Success! Found password, displaying as UTF-8: '{}'", password)
+                info!(
+                    "Success! Found password, displaying as UTF-8: '{}'",
+                    password
+                )
             }
             Err(_) => {
                 let hex_string: String = password
