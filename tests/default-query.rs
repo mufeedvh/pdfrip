@@ -33,3 +33,43 @@ fn success_pdf2() {
 
     assert!(matches!(res, Code::Success), "Failed cracking file.")
 }
+
+#[test]
+#[ignore = "This is slow"]
+fn success_pdf1111() {
+    let args = arguments::Arguments {
+        number_of_threads: 4,
+        filename: "examples/encrypted_1111_2222.pdf".to_string(),
+        subcommand: arguments::Method::DefaultQuery(arguments::DefaultQueryArgs {
+            min_length: 4,
+            max_length: 4,
+        }),
+    };
+
+    let res = entrypoint(args).expect("An error occured when cracking file");
+
+    assert!(
+        matches!(res, Code::Success),
+        "Failed to crack PDF. Expected to find '0000' but cracking returned failure."
+    )
+}
+
+#[test]
+#[ignore = "This is slow"]
+fn success_pdfaaaa() {
+    let args = arguments::Arguments {
+        number_of_threads: 4,
+        filename: "examples/encrypted_aaaa_bbbb.pdf".to_string(),
+        subcommand: arguments::Method::DefaultQuery(arguments::DefaultQueryArgs {
+            min_length: 4,
+            max_length: 4,
+        }),
+    };
+
+    let res = entrypoint(args).expect("An error occured when cracking file");
+
+    assert!(
+        matches!(res, Code::Success),
+        "Failed to crack PDF. Expected to find 'aaaa' but cracking returned failure."
+    )
+}

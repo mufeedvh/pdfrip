@@ -47,7 +47,7 @@ pub fn crack_file(
         let c2 = cracker_handle.clone();
         let id: std::thread::JoinHandle<()> = std::thread::spawn(move || {
             let Ok(mut cracker) = PDFCrackerState::from_cracker(&c2) else {
-                return
+                return;
             };
 
             while let Ok(passwd) = r2.recv() {
