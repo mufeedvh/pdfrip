@@ -13,14 +13,14 @@ impl DefaultQuery {
         let mut char_set: Vec<u8> = (b'0'..=b'9')
             .chain(b'A'..=b'Z')
             .chain(b'a'..=b'z')
-            .chain(b'!'..=b'/')  // Adding special characters from ASCII range ! (33) to / (47)
-            .chain(b':'..=b'@')  // Adding special characters from ASCII range : (58) to @ (64)
-            .chain(b'['..=b'`')  // Adding special characters from ASCII range [ (91) to ` (96)
-            .chain(b'{'..=b'~')  // Adding special characters from ASCII range { (123) to ~ (126)
+            .chain(b' '..=b'/') // Adding special characters from ASCII range ' ' (32) to / (47)
+            .chain(b':'..=b'@') // Adding special characters from ASCII range : (58) to @ (64)
+            .chain(b'['..=b'`') // Adding special characters from ASCII range [ (91) to ` (96)
+            .chain(b'{'..=b'~') // Adding special characters from ASCII range { (123) to ~ (126)
             .collect();
 
         char_set.sort();
-        
+
         Self {
             max_length,
             min_length,
