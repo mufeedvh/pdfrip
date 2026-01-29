@@ -71,4 +71,9 @@ impl<T: Clone> Cache<T> for SimpleCache<T> {
             }
         }
     }
+
+    fn clear(&self) {
+        let mut hash = self.0.borrow_mut();
+        hash.clear();
+    }
 }
