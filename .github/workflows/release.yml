@@ -7,52 +7,54 @@ on:
 jobs:
   build-ubuntu:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Install latest rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          default: true
-          override: true
-         
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install qpdf
+        run: sudo apt-get update && sudo apt-get install -y qpdf
+
       - name: Test
-        run: cargo test --all
+        run: cargo test --workspace --locked --verbose
+
+      - name: Run qpdf-backed verifier agreement tests
+        run: PDFRIP_QPDF_TESTS=1 cargo test -p cracker --test prepared_verifier --locked --verbose
+
+      - name: Build benchmark harness
+        run: cargo bench --bench throughput --no-run --locked --verbose
 
       - name: Build
-        run: cargo build --all --release && strip target/release/pdfrip && mv target/release/pdfrip target/release/pdfrip_amd64
+        run: cargo build --workspace --release --locked --verbose && strip target/release/pdfrip && mv target/release/pdfrip target/release/pdfrip_amd64
 
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-           target/release/pdfrip_amd64
+            target/release/pdfrip_amd64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-win:
     runs-on: windows-latest
-
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Install latest rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          default: true
-          override: true
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Test
-        run: cargo test --all
+        run: cargo test --workspace --locked --verbose
+
+      - name: Build benchmark harness
+        run: cargo bench --bench throughput --no-run --locked --verbose
 
       - name: Build
-        run: cargo build --all --release
+        run: cargo build --workspace --release --locked --verbose
 
       - name: Release
         uses: softprops/action-gh-release@v1
@@ -64,24 +66,23 @@ jobs:
 
   build-mac:
     runs-on: macos-latest
-
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Install latest rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           target: x86_64-apple-darwin
-          default: true
-          override: true
 
       - name: Test
-        run: cargo test --all
+        run: cargo test --workspace --locked --verbose
+
+      - name: Build benchmark harness
+        run: cargo bench --bench throughput --no-run --locked --verbose
 
       - name: Build for mac
-        run: cargo build --all --release && strip target/release/pdfrip && mv target/release/pdfrip target/release/pdfrip_darwin
+        run: cargo build --workspace --release --locked --verbose && strip target/release/pdfrip && mv target/release/pdfrip target/release/pdfrip_darwin
 
       - name: Release
         uses: softprops/action-gh-release@v1

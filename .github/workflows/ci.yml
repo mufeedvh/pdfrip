@@ -25,9 +25,21 @@ jobs:
         with:
           toolchain: ${{ matrix.rust-version }}
       - name: Build
-        run: cargo build --all --verbose
+        run: cargo build --workspace --locked --verbose
       - name: Test
-        run: cargo test --all --verbose
+        run: cargo test --workspace --locked --verbose
+  install_smoke_test:
+    name: Cargo install smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install from source
+        run: cargo install --path . --locked --force --root "${{ runner.temp }}/pdfrip-install"
+      - name: Verify installed binary
+        run: '${{ runner.temp }}/pdfrip-install/bin/pdfrip --help'
   lint:
     name: Clippy and fmt
     runs-on: ubuntu-latest
@@ -41,4 +53,26 @@ jobs:
       - name: Check formatting
         run: cargo fmt --check
       - name: Check for clippy lints
-        run: cargo clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+  benchmark_build:
+    name: Benchmark harness build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Build benchmark harness
+        run: cargo bench --bench throughput --no-run --locked --verbose
+  qpdf_oracle_tests:
+    name: qpdf oracle tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install qpdf
+        run: sudo apt-get update && sudo apt-get install -y qpdf
+      - name: Run qpdf-backed verifier agreement tests
+        run: PDFRIP_QPDF_TESTS=1 cargo test -p cracker --test prepared_verifier --locked --verbose

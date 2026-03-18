@@ -1,0 +1,2 @@
+# Keep PDF test fixtures byte-for-byte stable across platforms so xref offsets remain valid.
+*.pdf binary

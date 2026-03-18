@@ -4,7 +4,12 @@ use cli_interface::{arguments, entrypoint, Code};
 fn successful_crack() {
     let args = arguments::Arguments {
         number_of_threads: 4,
+        batch_size: engine::default_batch_size(),
         filename: "examples/ALICE_BANK_STATEMENT.pdf".to_string(),
+        json: false,
+        user_password_only: false,
+        checkpoint: None,
+        resume: None,
         subcommand: arguments::Method::CustomQuery(arguments::CustomQueryArgs {
             custom_query: "ALICE{1-9999}".to_string(),
             add_preceding_zeros: true,
@@ -20,7 +25,12 @@ fn successful_crack() {
 fn failed_crack() {
     let args = arguments::Arguments {
         number_of_threads: 4,
+        batch_size: engine::default_batch_size(),
         filename: "examples/ALICE_BANK_STATEMENT.pdf".to_string(),
+        json: false,
+        user_password_only: false,
+        checkpoint: None,
+        resume: None,
         subcommand: arguments::Method::CustomQuery(arguments::CustomQueryArgs {
             custom_query: "IM_BATMAN{1-2}".to_string(),
             add_preceding_zeros: true,
