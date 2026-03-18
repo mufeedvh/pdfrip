@@ -2,7 +2,7 @@
 members = [ "crates/cli-interface", "crates/cracker", "crates/engine","crates/producer"]
 
 [workspace.package]
-version = "2.0.1"
+version = "3.0.0"
 edition = "2021"
 authors = ["Mufeed VH <mufeed@lyminal.space>", "Pommaq"]
 
@@ -15,18 +15,25 @@ cracker.path="crates/cracker"
 engine.path="crates/engine"
 cli-interface.path="crates/cli-interface"
 
-# We add our subcrates' dependencies here to allow controlling versions from one location.
-# This makes it easier to see what crates are used in this project as well as 
-# avoids issue where e.g. "log" performs a breaking change, and two of our
-# crates use different major versions causing issues.
-bytecount = "0.6.7"
-log = "0.4.19"
-pdf = "0.9.0"
-anyhow = "1.0.72"
-indicatif = "0.17"
-crossbeam = "0.8.2"
-clap = { version = "4.4.13", features = ["derive"] }
-colored = "2.0.4"
+# We keep direct dependencies pinned exactly for reproducible release builds.
+# Combined with Cargo.lock and `--locked` CI/install flows, this prevents the
+# dependency drift that historically broke pdfrip builds.
+bytecount = "=0.6.9"
+log = "=0.4.19"
+pdf = "=0.9.0"
+anyhow = "=1.0.102"
+indicatif = "=0.17.11"
+crossbeam = "=0.8.4"
+clap = { version = "=4.6.0", features = ["derive"] }
+colored = "=2.2.0"
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.149"
+ctrlc = "=3.5.2"
+sha2 = "=0.10.9"
+md5 = "=0.7.0"
+stringprep = "=0.1.5"
+aes = "=0.8.4"
+cbc = "=0.1.2"
 
 
 [package]
@@ -39,7 +46,18 @@ authors.workspace = true
 [dependencies]
 cli-interface.workspace = true
 anyhow.workspace = true
-pretty_env_logger = "0.5.0"
+engine.workspace = true
+ctrlc.workspace = true
+pretty_env_logger = "=0.5.0"
+
+[dev-dependencies]
+cracker.workspace = true
+pdf.workspace = true
+criterion = "=0.5.1"
+
+[[bench]]
+name = "throughput"
+harness = false
 
 [profile.release]
 lto = 'thin'
