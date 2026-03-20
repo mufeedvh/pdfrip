@@ -169,7 +169,7 @@ impl PreparedPasswordVerifier {
         })?;
         let document_id = extract_document_id(&trailer)?;
         let resolved_encrypt = resolver
-            .resolve_optional_reference(encrypt_entry)
+            .resolve_encrypt_optional_reference(encrypt_entry)
             .map_err(anyhow::Error::from)
             .context("Failed to resolve trailer /Encrypt entry")?;
         let encrypt_dict = resolved_encrypt
@@ -958,6 +958,129 @@ impl SecurityEnvelopeResolver {
         }
     }
 
+    /// Resolves the trailer `/Encrypt` entry and tolerates select non-canonical
+    /// permission encodings emitted by some third-party writers.
+    ///
+    /// # Design rationale
+    ///
+    /// The `pdf` crate models all integer primitives as signed `i32`. Some
+    /// generators serialize the Standard Security Handler `/P` field as an
+    /// unsigned 32-bit integer carrying the same bit pattern, for example
+    /// `4294967292` instead of `-4`. That representation is semantically
+    /// equivalent for the permissions bitmask but exceeds the parser's integer
+    /// range and prevents the `/Encrypt` dictionary from loading at all.
+    ///
+    /// Rather than weakening parsing globally, we keep the strict parse as the
+    /// first attempt and only retry for the specific indirect `/Encrypt` object
+    /// after normalizing `/P` back to its signed 32-bit form.
+    fn resolve_encrypt_optional_reference(
+        &self,
+        primitive: Primitive,
+    ) -> pdf::error::Result<Primitive> {
+        match primitive {
+            Primitive::Reference(reference) => self.resolve_encrypt_reference(reference),
+            other => Ok(other),
+        }
+    }
+
+    /// Resolves the indirect `/Encrypt` dictionary with a targeted compatibility
+    /// fallback for non-canonical `/P` values.
+    fn resolve_encrypt_reference(&self, reference: PlainRef) -> pdf::error::Result<Primitive> {
+        let refs = self.refs.borrow();
+        let refs = refs.as_ref().ok_or_else(|| PdfError::Other {
+            msg: "xref table has not been initialized".to_string(),
+        })?;
+
+        match refs.get(reference.id)? {
+            XRef::Raw { pos, .. } => {
+                let absolute_offset = self
+                    .start_offset
+                    .checked_add(pos)
+                    .ok_or(PdfError::Invalid)?;
+                let object_bytes = self.pdf_bytes.read(absolute_offset..)?;
+                self.parse_encrypt_indirect_object(object_bytes, absolute_offset, reference)
+            }
+            XRef::Stream { stream_id, index } => {
+                let object_stream = self.get::<ObjectStream>(Ref::from_id(stream_id))?;
+                let (data, range) = object_stream.get_object_slice(index, self)?;
+                let slice = data.get(range.clone()).ok_or_else(|| PdfError::Other {
+                    msg: format!(
+                        "invalid object-stream slice {:?} for {} decoded bytes",
+                        range,
+                        data.len()
+                    ),
+                })?;
+                self.parse_encrypt_stream_object(slice, reference)
+            }
+            XRef::Free { .. } => Err(PdfError::FreeObject {
+                obj_nr: reference.id,
+            }),
+            XRef::Promised => Err(PdfError::Other {
+                msg: format!("promised reference {:?} is unsupported", reference),
+            }),
+            XRef::Invalid => Err(PdfError::NullRef {
+                obj_nr: reference.id,
+            }),
+        }
+    }
+
+    /// Parses a raw indirect `/Encrypt` object and retries after normalizing a
+    /// non-canonical unsigned permissions integer when needed.
+    fn parse_encrypt_indirect_object(
+        &self,
+        object_bytes: &[u8],
+        absolute_offset: usize,
+        reference: PlainRef,
+    ) -> pdf::error::Result<Primitive> {
+        let mut lexer = Lexer::with_offset(object_bytes, absolute_offset);
+        match parse_indirect_object(&mut lexer, self, None, ParseFlags::ANY) {
+            Ok((_, primitive)) => Ok(primitive),
+            Err(error) => {
+                let Some((normalized_bytes, original_permissions, normalized_permissions)) =
+                    normalize_noncanonical_encrypt_permissions_integer(object_bytes)
+                else {
+                    return Err(error);
+                };
+                debug!(
+                    "cracker.verifier.prepare.normalize_encrypt_permissions ref={} original_permissions={} normalized_permissions={}",
+                    reference.id,
+                    original_permissions,
+                    normalized_permissions
+                );
+
+                let mut retry_lexer = Lexer::with_offset(&normalized_bytes, absolute_offset);
+                Ok(parse_indirect_object(&mut retry_lexer, self, None, ParseFlags::ANY)?.1)
+            }
+        }
+    }
+
+    /// Parses an object-stream-backed `/Encrypt` dictionary with the same
+    /// targeted permissions fallback used for raw indirect objects.
+    fn parse_encrypt_stream_object(
+        &self,
+        object_bytes: &[u8],
+        reference: PlainRef,
+    ) -> pdf::error::Result<Primitive> {
+        match parse(object_bytes, self, ParseFlags::ANY) {
+            Ok(primitive) => Ok(primitive),
+            Err(error) => {
+                let Some((normalized_bytes, original_permissions, normalized_permissions)) =
+                    normalize_noncanonical_encrypt_permissions_integer(object_bytes)
+                else {
+                    return Err(error);
+                };
+                debug!(
+                    "cracker.verifier.prepare.normalize_encrypt_permissions ref={} original_permissions={} normalized_permissions={}",
+                    reference.id,
+                    original_permissions,
+                    normalized_permissions
+                );
+
+                parse(&normalized_bytes, self, ParseFlags::ANY)
+            }
+        }
+    }
+
     /// Reads and decodes a stream range from the backing PDF bytes.
     fn read_stream_data(
         &self,
@@ -1079,6 +1202,108 @@ impl Resolve for SecurityEnvelopeResolver {
     ) -> pdf::error::Result<Arc<[u8]>> {
         self.read_stream_data(id, range, filters)
     }
+}
+
+/// Rewrites a non-canonical unsigned Standard Security Handler `/P` integer
+/// into its signed 32-bit representation.
+///
+/// # Returns
+///
+/// Returns the normalized bytes together with the original unsigned value and
+/// the equivalent signed value when a rewrite was applied. Returns `None` when
+/// the source does not contain a normalizable `/P` entry.
+///
+/// # Design rationale
+///
+/// Some generators serialize the permissions bitmask as an unsigned decimal
+/// representation of the 32-bit field. The PDF security algorithm treats `/P`
+/// as a 32-bit signed value, so preserving the exact bit pattern while changing
+/// only the textual representation is sufficient to restore compatibility.
+fn normalize_noncanonical_encrypt_permissions_integer(
+    source: &[u8],
+) -> Option<(Vec<u8>, u32, i32)> {
+    let mut offset = 0usize;
+    while let Some(relative) = source[offset..].iter().position(|byte| *byte == b'/') {
+        let key_start = offset + relative;
+        let Some(key_end) = key_start.checked_add(2) else {
+            return None;
+        };
+        if source.get(key_start + 1) != Some(&b'P')
+            || !source
+                .get(key_end)
+                .is_some_and(|byte| is_pdf_token_boundary(*byte))
+        {
+            offset = key_start.saturating_add(1);
+            continue;
+        }
+
+        let mut number_start = key_end;
+        while source
+            .get(number_start)
+            .is_some_and(|byte| is_pdf_whitespace(*byte))
+        {
+            number_start += 1;
+        }
+
+        if source
+            .get(number_start)
+            .is_some_and(|byte| *byte == b'+' || *byte == b'-')
+        {
+            return None;
+        }
+
+        let mut number_end = number_start;
+        while source
+            .get(number_end)
+            .is_some_and(|byte| byte.is_ascii_digit())
+        {
+            number_end += 1;
+        }
+
+        if number_end == number_start
+            || !source
+                .get(number_end)
+                .is_none_or(|byte| is_pdf_token_boundary(*byte))
+        {
+            offset = key_start.saturating_add(1);
+            continue;
+        }
+
+        let value = std::str::from_utf8(&source[number_start..number_end])
+            .ok()?
+            .parse::<u64>()
+            .ok()?;
+        if value <= i32::MAX as u64 || value > u32::MAX as u64 {
+            return None;
+        }
+
+        let original_permissions = value as u32;
+        let normalized_permissions = original_permissions as i32;
+        let normalized_text = normalized_permissions.to_string();
+
+        let mut normalized_bytes =
+            Vec::with_capacity(source.len() - (number_end - number_start) + normalized_text.len());
+        normalized_bytes.extend_from_slice(&source[..number_start]);
+        normalized_bytes.extend_from_slice(normalized_text.as_bytes());
+        normalized_bytes.extend_from_slice(&source[number_end..]);
+        return Some((
+            normalized_bytes,
+            original_permissions,
+            normalized_permissions,
+        ));
+    }
+
+    None
+}
+
+/// Returns `true` when the byte terminates a PDF token.
+fn is_pdf_token_boundary(byte: u8) -> bool {
+    is_pdf_whitespace(byte) || matches!(byte, b'/' | b'<' | b'>' | b'[' | b']' | b'(' | b')' | b'%')
+}
+
+/// Returns `true` when the byte is PDF whitespace.
+fn is_pdf_whitespace(byte: u8) -> bool {
+    matches!(byte, 0 | b' ' | b'\r' | b'\n' | b'\t' | 0x0c)
 }
 
 /// Extracts the first trailer document identifier.
