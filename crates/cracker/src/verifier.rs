@@ -51,7 +51,7 @@ use pdf::crypt::{CryptDict, Decoder, Rc4};
 use pdf::enc::{decode, StreamFilter};
 use pdf::object::{Object, ObjectStream, ParseOptions, PlainRef, RcRef, Ref, Resolve};
 use pdf::parser::{parse, parse_indirect_object, Lexer, ParseFlags};
-use pdf::primitive::{Dictionary, Primitive};
+use pdf::primitive::{Dictionary, PdfString, Primitive};
 use pdf::xref::{XRef, XRefTable};
 use pdf::PdfError;
 use sha2::{Digest, Sha256, Sha384, Sha512};
@@ -172,7 +172,7 @@ impl PreparedPasswordVerifier {
             .resolve_encrypt_optional_reference(encrypt_entry)
             .map_err(anyhow::Error::from)
             .context("Failed to resolve trailer /Encrypt entry")?;
-        let encrypt_dict = resolved_encrypt
+        let mut encrypt_dict = resolved_encrypt
             .clone()
             .into_dictionary()
             .map_err(anyhow::Error::from)
@@ -180,6 +180,8 @@ impl PreparedPasswordVerifier {
 
         let profile = SecurityProfile::from_encrypt_dictionary(&resolver, &encrypt_dict)
             .context("Unsupported or malformed PDF security handler")?;
+        normalize_r56_padded_verifier_fields(&mut encrypt_dict, &profile)
+            .context("Failed to normalize padded AES-256 verifier fields")?;
         let classifier = PasswordClassifier::from_encrypt_dictionary(&profile, &encrypt_dict)
             .context("Failed to prepare password-kind classifier from the encryption dictionary")?;
         let crypt_dict = CryptDict::from_primitive(Primitive::Dictionary(encrypt_dict), &resolver)
@@ -1359,6 +1361,55 @@ fn required_name<'a>(dict: &'a Dictionary, dict_name: &str, key: &str) -> Result
         .as_name()
         .map_err(anyhow::Error::from)
         .with_context(|| format!("{dict_name} /{key} was not a name"))
+}
+
+/// Canonicalizes Acrobat-style zero-padded R5/R6 `/O` and `/U` strings.
+///
+/// # Design rationale
+///
+/// Real-world Acrobat-generated AES-256 files have been observed to serialize
+/// the 48-byte verifier blobs inside literal strings padded with trailing NULs
+/// up to 127 bytes. qpdf accepts those files and uses only the first 48 bytes.
+/// The `pdf` crate exposes the full padded literal string, which makes both the
+/// direct classifier and the `Decoder::from_password` self-check reject the
+/// file. Trimming only an all-zero tail preserves the meaningful verifier bytes
+/// while remaining fail-closed for any non-zero overrun.
+fn normalize_r56_padded_verifier_fields(
+    encrypt_dict: &mut Dictionary,
+    profile: &SecurityProfile,
+) -> Result<()> {
+    if !matches!(
+        profile.variant,
+        SecurityVariant::Aes256Revision5 | SecurityVariant::Aes256Revision6
+    ) {
+        return Ok(());
+    }
+
+    for key in ["O", "U"] {
+        let Some(value) = encrypt_dict.get(key) else {
+            continue;
+        };
+        let string = value
+            .as_string()
+            .map_err(anyhow::Error::from)
+            .with_context(|| format!("Encrypt /{key} was not a string"))?;
+        let bytes = string.as_bytes();
+        if bytes.len() <= 48 || bytes[48..].iter().any(|byte| *byte != 0) {
+            continue;
+        }
+
+        debug!(
+            "cracker.verifier.prepare.normalize_r56_field key={} original_len={} normalized_len=48",
+            key,
+            bytes.len()
+        );
+        encrypt_dict.insert(
+            key,
+            Primitive::String(PdfString::new(bytes[..48].to_vec().into())),
+        );
+    }
+
+    Ok(())
 }
 
 /// Reads an optional boolean field from a PDF dictionary.
